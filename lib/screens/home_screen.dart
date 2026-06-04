@@ -13,21 +13,24 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AppBar(
-        backgroundColor: AppColors.bgLight,
-        elevation: 0,
-        title: const Row(
-          children: [
-            Icon(Icons.diamond, color: AppColors.darkGreen),
-            SizedBox(width: 8),
-            Text('أربيل رويال', style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
-          ],
-        ),
-         IconButton(onPressed: () => _launchUrl('https://wa.me/9647500000000'), icon: const Icon(Icons.chat, color: AppColors.darkGreen)),
-          IconButton(onPressed: () => _launchUrl('https://instagram.com/'), icon: const Icon(Icons.camera_alt, color: AppColors.darkGreen)),
-          IconButton(onPressed: () => _launchUrl('https://facebook.com/'), icon: const Icon(Icons.facebook, color: AppColors.darkGreen)),
-        ],
-      ),
+      // استبدل الـ AppBar الحالي بهذا الكود:
+appBar: AppBar(
+  backgroundColor: AppColors.bgLight,
+  elevation: 0,
+  title: const Row(
+    children: [
+      Icon(Icons.diamond, color: AppColors.darkGreen),
+      SizedBox(width: 8),
+      Text('أربيل رويال', style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
+    ],
+  ),
+  // لاحظ هنا قمنا بإغلاق الـ Row أعلاه، والآن نضيف الأزرار في actions
+  actions: [
+    IconButton(onPressed: () => _launchUrl('https://wa.me/9647500000000'), icon: const Icon(Icons.chat, color: AppColors.darkGreen)),
+    IconButton(onPressed: () => _launchUrl('https://instagram.com/'), icon: const Icon(Icons.camera_alt, color: AppColors.darkGreen)),
+    IconButton(onPressed: () => _launchUrl('https://facebook.com/'), icon: const Icon(Icons.facebook, color: AppColors.darkGreen)),
+  ],
+),
       body: SingleChildScrollView(
         child: Column(
           children: [
