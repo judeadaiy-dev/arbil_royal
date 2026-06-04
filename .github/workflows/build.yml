@@ -17,6 +17,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
       
+      # هذه الخطوة هي "الحل السحري" لإنشاء مجلد الأندرويد المفقود
+      - name: Generate Android project structure
+        run: flutter create .
+      
       - name: Generate App Icons
         run: dart run flutter_launcher_icons 
       
