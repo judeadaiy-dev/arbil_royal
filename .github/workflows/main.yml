@@ -17,22 +17,26 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Prepare and Build
+      - name: Build & Compile
         run: |
-          # 1. تثبيت المكتبات (بدون مسح ملفات الأندرويد لكي تبقى تعديلاتك)
+          # 1. تنظيف شامل
+          flutter clean
+          
+          # 2. إجبار إنشاء ملفات الأندرويد لضمان التطابق
+          # استبدل com.arbilroyal بـ Package Name الخاص بتطبيقك
+          flutter create --platforms android --org com.arbilroyal .
+          
+          # 3. تحميل المكتبات
           flutter pub get
           
-          # 2. توليد الأيقونات (فقط إذا كان ملف الإعداد موجود)
-          if [ -f "pubspec.yaml" ]; then
-            dart run flutter_launcher_icons
-          fi
+          # 4. توليد الأيقونات (بما أننا أنشأنا المجلد، ستعمل الآن)
+          dart run flutter_launcher_icons
           
-          # 3. بناء التطبيق مباشرة
+          # 5. البناء النهائي
           flutter build apk --release --no-tree-shake-icons
       
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: arbil-royal-release
+          name: arbil-royal-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 7
