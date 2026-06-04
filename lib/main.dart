@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'screens/main_screen.dart'; // غيرنا من home_screen إلى main_screen
+import 'screens/main_screen.dart';
 import 'core/app_colors.dart';
 
 Future<void> main() async {
@@ -26,33 +26,46 @@ class ArbilRoyalApp extends StatelessWidget {
     return MaterialApp(
       title: 'أربيل رويال',
       debugShowCheckedModeBanner: false,
-      // دعم اللغة العربية RTL
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('ar', ''), // عربي
-        Locale('en', ''), // إنجليزي احتياط
+        Locale('ar', ''),
+        Locale('en', ''),
       ],
-      locale: const Locale('ar', ''), // افتراضي عربي
+      locale: const Locale('ar', ''),
       theme: ThemeData(
-        textTheme: GoogleFonts.tajawalTextTheme(),
-        scaffoldBackgroundColor: AppColors.whiteBottom, // أبيض من الخلفية المتدرجة
-        useMaterial3: true,
+        // الألوان الجديدة المطابقة للهوية
+        primaryColor: AppColors.darkOliveGrey,
+        scaffoldBackgroundColor: AppColors.whiteBottom, 
+        
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.tealGreen, // أخضر تركوازي من الهوية الجديدة
+          seedColor: AppColors.tealGreen,
+          primary: AppColors.tealGreen,
+          secondary: AppColors.darkMatteGreen,
+          surface: AppColors.whiteBottom,
           brightness: Brightness.light,
         ),
-        // ستايل موحد للأزرار
+        
+        textTheme: GoogleFonts.tajawalTextTheme().apply(
+          bodyColor: AppColors.darkOliveGrey,
+          displayColor: AppColors.darkOliveGrey,
+        ),
+        
+        useMaterial3: true,
+        
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.tealGreen,
+            foregroundColor: Colors.white,
             textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            padding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
-        // ستايل AppBar موحد
+        
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -64,8 +77,25 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
           iconTheme: const IconThemeData(color: AppColors.darkOliveGrey),
         ),
+        
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.9),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: AppColors.greyLight),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: AppColors.greyLight),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(15),
+            borderSide: BorderSide(color: AppColors.tealGreen, width: 2),
+          ),
+        ),
       ),
-      home: const MainScreen(), // صارت MainScreen مو HomeScreen
+      home: const MainScreen(),
     );
   }
 }
