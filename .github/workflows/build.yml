@@ -13,15 +13,20 @@ jobs:
         with:
           flutter-version: '3.22.0'
           channel: 'stable'
-      
-      - name: Install dependencies
-        run: flutter pub get
-      
-      - name: Build APK
-        run: flutter build apk --release
-      
+
+      # الخطوة السحرية: سنقوم بإنشاء مشروع مؤقت وننقل كودك إليه تلقائياً
+      - name: Rebuild Project Structure
+        run: |
+          mkdir temp_project
+          flutter create temp_project
+          rm -rf temp_project/lib temp_project/pubspec.yaml
+          cp -r . temp_project/
+          cd temp_project
+          flutter pub get
+          flutter build apk --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
