@@ -21,9 +21,9 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: true
+  ios: false  # هذا هو السطر الذي يحل المشكلة، يخبر الأداة ألا تبحث عن أي شيء يخص أبل
   image_path: "assets/images/app_icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 21 
 
 flutter:
   uses-material-design: true
