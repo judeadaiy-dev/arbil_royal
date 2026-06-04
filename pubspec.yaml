@@ -13,7 +13,6 @@ dependencies:
   url_launcher: ^6.2.5
   google_fonts: ^6.2.1
   google_maps_flutter: ^2.7.0 # فقط هذي الزيادة للخريطة
-  flutter:
     sdk: flutter
   supabase_flutter: ^2.5.6
   url_launcher: ^6.2.5
