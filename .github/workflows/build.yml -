@@ -1,4 +1,4 @@
-name: Build Flutter APK with Custom Icons
+name: Build Flutter APK
 on: 
   push:
     branches: [ main ]
@@ -17,30 +17,18 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Force Clean and Recreate Android
+      - name: Prepare and Build
         run: |
-          # 1. مسح أي ملفات أندرويد قديمة
-          rm -rf android/
-          rm -rf build/
-          
-          # 2. إجبار فلاتر على إعادة إنشاء ملفات الأندرويد من الصفر
-          # --platforms android عشان ما يمسح ios/web لو موجودات
-          # --org com.arbilroyal عشان package name مضبوط
-          flutter create --platforms android --org com.arbilroyal .
-          
-          # 3. تثبيت المكتبات
+          # 1. تثبيت المكتبات (بدون مسح ملفات الأندرويد لكي تبقى تعديلاتك)
           flutter pub get
           
-          # 4. تشغيل flutter_launcher_icons لتوليد كل قياسات الأيقونة
-          # هذا الأمر ياخذ assets/images/app_icon.png ويولد mipmap-*
-          dart run flutter_launcher_icons
+          # 2. توليد الأيقونات (فقط إذا كان ملف الإعداد موجود)
+          if [ -f "pubspec.yaml" ]; then
+            dart run flutter_launcher_icons
+          fi
           
-          # 5. التأكد أن الأيقونات انولدت
-          echo "=== Checking generated icons ==="
-          ls -la android/app/src/main/res/mipmap-*/
-      
-      - name: Build Release APK
-        run: flutter build apk --release --no-tree-shake-icons
+          # 3. بناء التطبيق مباشرة
+          flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
