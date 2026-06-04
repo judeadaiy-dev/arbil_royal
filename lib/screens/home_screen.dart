@@ -23,8 +23,7 @@ class HomeScreen extends StatelessWidget {
             Text('أربيل رويال', style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold)),
           ],
         ),
-        actions: [
-          IconButton(onPressed: () => _launchUrl('https://wa.me/9647500000000'), icon: const Icon(Icons.whatsapp, color: AppColors.darkGreen)),
+         IconButton(onPressed: () => _launchUrl('https://wa.me/9647500000000'), icon: const Icon(Icons.chat, color: AppColors.darkGreen)),
           IconButton(onPressed: () => _launchUrl('https://instagram.com/'), icon: const Icon(Icons.camera_alt, color: AppColors.darkGreen)),
           IconButton(onPressed: () => _launchUrl('https://facebook.com/'), icon: const Icon(Icons.facebook, color: AppColors.darkGreen)),
         ],
