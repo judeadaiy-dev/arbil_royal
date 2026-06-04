@@ -1,7 +1,5 @@
 name: Build Flutter APK
-on: 
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
@@ -14,19 +12,14 @@ jobs:
           flutter-version: '3.22.0'
           channel: 'stable'
 
-      # الخطوة السحرية: سنقوم بإنشاء مشروع مؤقت وننقل كودك إليه تلقائياً
-      - name: Rebuild Project Structure
-        run: |
-          mkdir temp_project
-          flutter create temp_project
-          rm -rf temp_project/lib temp_project/pubspec.yaml
-          cp -r . temp_project/
-          cd temp_project
-          flutter pub get
-          flutter build apk --release
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --split-per-abi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: temp_project/build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/
