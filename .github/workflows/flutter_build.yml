@@ -19,13 +19,22 @@ jobs:
 
       - name: Build & Compile
         run: |
+          # 1. تنظيف
           flutter clean
           
-          # 1. إنشاء المشروع (بما أنك لا تملك مجلد android)
+          # 2. إنشاء الهيكلية مع تحديد التوافق
           flutter create . --platforms android
           
-          # 2. تحديث المكتبات
+          # 3. خطوة إصلاح Gradle السحرية:
+          # هذا السطر يضمن أن إعدادات الـ Flutter معرفة بشكل صحيح لكل المكتبات
+          echo "flutter.sdk=$(flutter --version --machine | grep -oP '(?<=\"flutterRoot\":\")[^\"]*')" >> android/local.properties
+          
+          # 4. تحميل المكتبات
           flutter pub get
+          
+          # 5. البناء النهائي
+          flutter build apk --release --no-tree-shake-icons
+
           
           # 3. إجبار بناء الـ APK بـ Gradle حديث
           flutter build apk --release --no-tree-shake-icons
