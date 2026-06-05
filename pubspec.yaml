@@ -9,12 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations: # أضف هذا السطر
-    sdk: flutter         # أضف هذا السطر
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  
+  # Supabase + UI
   supabase_flutter: ^2.5.6
   url_launcher: ^6.2.5
   google_fonts: ^6.2.1
+  
+  # الخرائط
   google_maps_flutter: ^2.7.0
+  
+  # تأثيرات Glassmorphism
+  # dart:ui موجود تلقائياً ما يحتاج إضافة
 
 dev_dependencies:
   flutter_test:
@@ -24,13 +32,12 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  ios: false  # هذا هو السطر الذي يحل المشكلة، يخبر الأداة ألا تبحث عن أي شيء يخص أبل
+  ios: false
   image_path: "assets/images/app_icon.png"
-  min_sdk_android: 21 
+  min_sdk_android: 21
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
-
-# Trigger build
