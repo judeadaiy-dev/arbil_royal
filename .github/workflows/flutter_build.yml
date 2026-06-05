@@ -24,17 +24,17 @@ jobs:
           # إنشاء المشروع
           flutter create . --platforms android
           
-          # حقن تعريفات الـ Flutter في ملف build.gradle الرئيسي ليتعرف عليها app_links
-          echo "subprojects { project.evaluationDependsOn(':app') }" >> android/build.gradle
+          # 1. تحديث المكتبات إلى آخر إصدار لتجاوز الـ Bug
+          flutter pub upgrade --major-versions
           
-          # إضافة تعريف الـ SDK يدوياً ليتجاوز خطأ compileSdkVersion
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
+          # 2. حقن إعدادات التوافق في ملفات الـ Gradle التي تم إنشاؤها
+          # هذا السطر يضمن أن كل المكاتب (بما فيها app_links) ترى الـ Flutter SDK
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > android/gradle.properties
+          
+          # 3. إجبار المكتبات على قراءة الـ SDK الصحيح
+          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
 
-          flutter pub get
-          
-          # البناء
+          # 4. البناء
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
