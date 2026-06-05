@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/app_colors.dart';
 import '../main.dart';
-import '../models/property_model.dart';
-import 'property_details_screen.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -14,267 +13,211 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
-  int _selectedTab = 0; // 0=قائمة العقارات, 1=إضافة جديد
+  final _formKey = GlobalKey<FormState>();
+  final MapController _mapController = MapController();
+  
+  String _title = '';
+  String _location = '';
+  double _price = 0;
+  int _rooms = 0;
+  int _bathrooms = 0;
+  double _area = 0;
+  String _type = 'house';
+  String _imageUrl = '';
+  bool _isFeatured = false;
+  
+  // الإحداثيات - أربيل افتراضياً
+  LatLng _selectedLocation = const LatLng(36.1911, 44.0091);
+  bool _isLoading = false;
+
+  Future<void> _saveProperty() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    setState(() => _isLoading = true);
+
+    try {
+      await supabase.from('properties').insert({
+        'title': _title,
+        'location': _location, // هذا نص عادي "شارع 60"
+        'price': _price,
+        'rooms': _rooms,
+        'bathrooms': _bathrooms,
+        'area': _area,
+        'type': _type,
+        'image_url': _imageUrl,
+        'is_featured': _isFeatured,
+        'latitude': _selectedLocation.latitude,   // هذا رقم 36.1911
+        'longitude': _selectedLocation.longitude, // هذا رقم 44.0091
+        'is_active': true,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم إضافة العقار بنجاح', style: GoogleFonts.tajawal()),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ: $e', style: GoogleFonts.tajawal()),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('لوحة التحكم', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.tealGreen,
-        foregroundColor: Colors.white,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: Row(
-            children: [
-              _buildTabButton('العقارات', 0),
-              _buildTabButton('إضافة جديد', 1),
-            ],
-          ),
-        ),
-      ),
-      body: _selectedTab == 0? const _PropertyListTab() : const _AddPropertyTab(),
-    );
-  }
-
-  Widget _buildTabButton(String title, int index) {
-    final isSelected = _selectedTab == index;
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _selectedTab = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: isSelected? Colors.white.withOpacity(0.2) : Colors.transparent,
-            border: Border(bottom: BorderSide(color: isSelected? Colors.white : Colors.transparent, width: 3)),
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.tajawal(color: Colors.white, fontWeight: isSelected? FontWeight.bold : FontWeight.normal),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// تبويب 1: قائمة العقارات مع تعديل/حذف/إخفاء
-class _PropertyListTab extends StatefulWidget {
-  const _PropertyListTab();
-
-  @override
-  State<_PropertyListTab> createState() => _PropertyListTabState();
-}
-
-class _PropertyListTabState extends State<_PropertyListTab> {
-  String _searchQuery = '';
-  
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // شريط بحث + إحصائيات
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: TextField(
-            onChanged: (val) => setState(() => _searchQuery = val),
-            decoration: InputDecoration(
-              hintText: 'ابحث بالاسم أو السعر...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-            ),
-          ),
-        ),
-        // قائمة العقارات
-        Expanded(
-          child: StreamBuilder<List<PropertyModel>>(
-            stream: supabase.from('properties').stream(primaryKey: ['id']).map((maps) => maps.map(PropertyModel.fromJson).toList()),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              var properties = snapshot.data!;
-              if (_searchQuery.isNotEmpty) {
-                properties = properties.where((p) => 
-                  p.title.contains(_searchQuery) || p.price.toString().contains(_searchQuery)
-                ).toList();
-              }
-              return ListView.builder(
-                itemCount: properties.length,
-                itemBuilder: (context, index) => _buildAdminPropertyTile(properties[index]),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdminPropertyTile(PropertyModel p) {
-    return Dismissible(
-      key: Key(p.id.toString()),
-      background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
-      confirmDismiss: (dir) async => await showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text('حذف العقار؟', style: GoogleFonts.tajawal()),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-            TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
-          ],
-        ),
-      ),
-      onDismissed: (_) => supabase.from('properties').delete().eq('id', p.id),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(p.imageUrl, width: 60, height: 60, fit: BoxFit.cover),
-        ),
-        title: Text(p.title, style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
-        subtitle: Text('\$${p.price} - ${p.location}', style: GoogleFonts.tajawal()),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(p.isFeatured? Icons.star : Icons.star_border, color: Colors.amber),
-              onPressed: () => supabase.from('properties').update({'is_featured':!p.isFeatured}).eq('id', p.id),
-            ),
-            IconButton(
-              icon: Icon(p.isActive? Icons.visibility : Icons.visibility_off),
-              onPressed: () => supabase.from('properties').update({'is_active':!p.isActive}).eq('id', p.id),
-            ),
-          ],
-        ),
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PropertyDetailsScreen(property: p))),
-      ),
-    );
-  }
-}
-
-// تبويب 2: إضافة عقار جديد - نفس الكود اللي عطيتك قبل + تعديلات
-class _AddPropertyTab extends StatefulWidget {
-  const _AddPropertyTab();
-
-  @override
-  State<_AddPropertyTab> createState() => _AddPropertyTabState();
-}
-
-class _AddPropertyTabState extends State<_AddPropertyTab> {
-  final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  final _location = TextEditingController();
-  final _image = TextEditingController();
-  final _price = TextEditingController();
-  final _rooms = TextEditingController();
-  final _bathrooms = TextEditingController();
-  final _area = TextEditingController();
-  final _whatsapp = TextEditingController();
-  final _url = TextEditingController();
-  LatLng? _selectedLocation;
-  bool _isFeatured = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
+      appBar: AppBar(title: const Text('إضافة عقار جديد')),
+      body: Form(
         key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            _field(_title, 'عنوان العقار'),
-            _field(_location, 'المدينة - إذا كتبت أربيل يتفعل الموقع تلقائياً'),
-            _field(_image, 'رابط الصورة'),
-            _field(_price, 'السعر', isNumber: true),
-            Row(children: [
-              Expanded(child: _field(_rooms, 'غرف النوم', isNumber: true)),
-              const SizedBox(width: 12),
-              Expanded(child: _field(_bathrooms, 'الحمامات', isNumber: true)),
-            ]),
-            _field(_area, 'المساحة م²', isNumber: true),
-            _field(_whatsapp, 'رقم واتساب'),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'عنوان العقار'),
+              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              onSaved: (val) => _title = val!,
+            ),
             const SizedBox(height: 16),
-            Text('حدد الموقع على الخريطة', style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'اسم المنطقة - مثلا: شارع 60'),
+              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              onSaved: (val) => _location = val!,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'السعر'),
+              keyboardType: TextInputType.number,
+              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              onSaved: (val) => _price = double.parse(val!),
+            ),
+            const SizedBox(height: 24),
+            
+            // خريطة اختيار الموقع
+            Text(
+              'اضغط على الخريطة لتحديد موقع العقار:',
+              style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
             Container(
-              height: 250,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.tealGreen)),
-              child: ClipRRect(
+              height: 300,
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                child: GoogleMap(
-                  initialCameraPosition: const CameraPosition(target: LatLng(36.1911, 44.0091), zoom: 12),
-                  onTap: (latLng) => setState(() => _selectedLocation = latLng),
-                  markers: _selectedLocation!= null? {Marker(markerId: const MarkerId('s'), position: _selectedLocation!)} : {},
+                border: Border.all(color: AppColors.glassBorder, width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _selectedLocation,
+                    initialZoom: 13.0,
+                    onTap: (tapPosition, point) {
+                      setState(() => _selectedLocation = point);
+                    },
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.arbilroyal.app',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _selectedLocation,
+                          width: 50,
+                          height: 50,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: AppColors.errorRed,
+                            size: 50,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            _field(_url, 'رابط Google Maps اختياري'),
-            SwitchListTile(
-              title: Text('عقار مميز؟', style: GoogleFonts.tajawal()),
-              value: _isFeatured,
-              onChanged: (val) => setState(() => _isFeatured = val),
-              activeColor: AppColors.tealGreen,
+            const SizedBox(height: 8),
+            Text(
+              'الإحداثيات: ${_selectedLocation.latitude.toStringAsFixed(6)}, ${_selectedLocation.longitude.toStringAsFixed(6)}',
+              style: GoogleFonts.tajawal(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            
+            // باقي الحقول
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(labelText: 'غرف'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (val) => _rooms = int.parse(val ?? '0'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(labelText: 'حمامات'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (val) => _bathrooms = int.parse(val ?? '0'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(labelText: 'المساحة م²'),
+                    keyboardType: TextInputType.number,
+                    onSaved: (val) => _area = double.parse(val ?? '0'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'رابط الصورة'),
+              onSaved: (val) => _imageUrl = val!,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _type,
+              decoration: const InputDecoration(labelText: 'نوع العقار'),
+              items: const [
+                DropdownMenuItem(value: 'house', child: Text('منزل')),
+                DropdownMenuItem(value: 'apartment', child: Text('شقة')),
+                DropdownMenuItem(value: 'land', child: Text('أرض')),
+              ],
+              onChanged: (val) => setState(() => _type = val!),
+            ),
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              title: Text('عقار مميز', style: GoogleFonts.tajawal()),
+              value: _isFeatured,
+              onChanged: (val) => setState(() => _isFeatured = val!),
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _publish,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.darkMatteGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: Text('نشر العقار', style: GoogleFonts.tajawal(fontSize: 18)),
+              onPressed: _isLoading ? null : _saveProperty,
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('حفظ العقار'),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _field(TextEditingController c, String label, {bool isNumber = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: c,
-        keyboardType: isNumber? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(labelText: label, border: OutlineInputBorder(borderRadius: BorderRadius.circular(15))),
-        validator: (v) => v!.isEmpty? 'مطلوب' : null,
-      ),
-    );
-  }
-
-  Future<void> _publish() async {
-    if (!_formKey.currentState!.validate()) return;
-    
-    // إذا كتب أربيل وما حدد موقع، نحط إحداثيات أربيل تلقائياً
-    double? lat = _selectedLocation?.latitude;
-    double? lng = _selectedLocation?.longitude;
-    if ((lat == null || lng == null) && _location.text.contains('أربيل')) {
-      lat = 36.1911;
-      lng = 44.0091;
-    }
-
-    await supabase.from('properties').insert({
-      'title': _title.text,
-      'location': _location.text,
-      'image_url': _image.text,
-      'price': int.parse(_price.text),
-      'rooms': int.parse(_rooms.text),
-      'bathrooms': int.parse(_bathrooms.text),
-      'area': int.parse(_area.text),
-      'whatsapp': _whatsapp.text,
-      'lat': lat,
-      'lng': lng,
-      'address_url': _url.text.isEmpty? null : _url.text,
-      'is_featured': _isFeatured,
-      'is_active': true,
-    });
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم النشر')));
-      _formKey.currentState!.reset();
-      setState(() => _selectedLocation = null);
-    }
   }
 }
