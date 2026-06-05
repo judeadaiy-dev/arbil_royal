@@ -22,17 +22,20 @@ jobs:
           # 1. تنظيف
           flutter clean
           
-          # 2. إنشاء الهيكلية مع تحديد التوافق
+          # 2. إنشاء الهيكل (بدون استبدال الملفات الموجودة إن وجدت)
           flutter create . --platforms android
           
-          # 3. خطوة إصلاح Gradle السحرية:
-          # هذا السطر يضمن أن إعدادات الـ Flutter معرفة بشكل صحيح لكل المكتبات
-          echo "flutter.sdk=$(flutter --version --machine | grep -oP '(?<=\"flutterRoot\":\")[^\"]*')" >> android/local.properties
+          # 3. إجبار تحديث الـ Gradle Wrappers ليتوافق مع الإصدارات الحديثة
+          cd android && ./gradlew wrapper --gradle-version 8.4 && cd ..
           
-          # 4. تحميل المكتبات
+          # 4. إصلاح ملف build.gradle الرئيسي (إضافة التعريفات المفقودة)
+          echo "buildscript { ext.kotlin_version = '1.9.0' }" > android/build.gradle
+          echo "allprojects { repositories { google(); mavenCentral() } }" >> android/build.gradle
+          
+          # 5. تحميل المكتبات
           flutter pub get
           
-          # 5. البناء النهائي
+          # 6. البناء
           flutter build apk --release --no-tree-shake-icons
 
           
