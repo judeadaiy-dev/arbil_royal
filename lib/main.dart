@@ -3,17 +3,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/splash_screen.dart';
+import 'screens/error_screen.dart';
 import 'core/app_colors.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Supabase.initialize(
-    url: 'https://jmsmrojtlstppnpwmkkk.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptc21yb2p0bHN0cHBucHdta2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTg2NDAsImV4cCI6MjA4ODM5NDY0MH0.j7gxr5CvrfvbJJzK_pMwVHiCE2AqpXUTThpeLEBmsos',
-  );
+  // 1. معالج الأخطاء - يطبع الخطأ على الشاشة بدل الخروج المفاجئ
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+    runApp(ErrorScreen(error: details.exception.toString()));
+  };
   
-  runApp(const ArbilRoyalApp());
+  // 2. معالج أخطاء async
+  runZonedGuarded(() async {
+    await Supabase.initialize(
+      url: 'https://jmsmrojtlstppnpwmkkk.supabase.co',
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imptc21yb2p0bHN0cHBucHdta2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MTg2NDAsImV4cCI6MjA4ODM5NDY0MH0.j7gxr5CvrfvbJJzK_pMwVHiCE2AqpXUTThpeLEBmsos',
+    );
+    
+    runApp(const ArbilRoyalApp());
+  }, (error, stack) {
+    runApp(ErrorScreen(error: error.toString()));
+  });
 }
 
 final supabase = Supabase.instance.client;
@@ -41,7 +53,6 @@ class ArbilRoyalApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.backgroundColor,
-        
         primaryColor: AppColors.tealGreen,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.tealGreen,
@@ -50,52 +61,38 @@ class ArbilRoyalApp extends StatelessWidget {
           surface: AppColors.whiteBottom,
           brightness: Brightness.light,
         ),
-        
         textTheme: GoogleFonts.tajawalTextTheme().apply(
           bodyColor: AppColors.darkOliveGrey,
           displayColor: AppColors.darkOliveGrey,
         ),
-        
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.tealGreen,
             foregroundColor: Colors.white,
-            textStyle: GoogleFonts.tajawal(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.bold, fontSize: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
-              side: BorderSide(
-                color: Colors.white.withOpacity(0.3),
-                width: 1,
-              ),
+              side: BorderSide(color: Colors.white.withOpacity(0.3), width: 1),
             ),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             elevation: 0,
-            shadowColor: AppColors.tealGreen.withOpacity(0.4),
           ),
         ),
-        
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.tealGreen,
             textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             side: const BorderSide(color: AppColors.tealGreen, width: 2),
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           ),
         ),
-        
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.tealGreen,
             textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
           ),
         ),
-        
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -107,7 +104,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
           iconTheme: const IconThemeData(color: AppColors.darkOliveGrey),
         ),
-        
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.glassWhite.withOpacity(0.8),
@@ -128,16 +124,11 @@ class ArbilRoyalApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
             borderSide: const BorderSide(color: AppColors.errorRed, width: 1),
           ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: const BorderSide(color: AppColors.errorRed, width: 2),
-          ),
           labelStyle: GoogleFonts.tajawal(color: AppColors.darkOliveGrey),
           hintStyle: GoogleFonts.tajawal(color: AppColors.greyLight),
           prefixIconColor: AppColors.tealGreen,
           suffixIconColor: AppColors.tealGreen,
         ),
-        
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.glassWhite.withOpacity(0.7),
           selectedColor: AppColors.tealGreen,
@@ -149,9 +140,7 @@ class ArbilRoyalApp extends StatelessWidget {
             side: BorderSide(color: AppColors.glassBorder, width: 1),
           ),
           elevation: 0,
-          pressElevation: 2,
         ),
-        
         snackBarTheme: SnackBarThemeData(
           backgroundColor: AppColors.darkOliveGrey.withOpacity(0.95),
           contentTextStyle: GoogleFonts.tajawal(color: Colors.white),
@@ -162,7 +151,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
           elevation: 10,
         ),
-        
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.white.withOpacity(0.9),
           selectedItemColor: AppColors.tealGreen,
@@ -172,14 +160,11 @@ class ArbilRoyalApp extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
           elevation: 0,
         ),
-        
-        // تم التصحيح: DialogTheme بدلاً من DialogThemeData
         dialogTheme: DialogTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         ),
-        
         floatingActionButtonTheme: FloatingActionButtonThemeData(
           backgroundColor: AppColors.tealGreen,
           foregroundColor: Colors.white,
@@ -189,8 +174,6 @@ class ArbilRoyalApp extends StatelessWidget {
             side: BorderSide(color: Colors.white.withOpacity(0.3), width: 1),
           ),
         ),
-        
-        // تم التصحيح: CardTheme بدلاً من CardThemeData
         cardTheme: CardTheme(
           color: AppColors.glassWhite.withOpacity(0.8),
           elevation: 0,
@@ -200,7 +183,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
           margin: const EdgeInsets.all(8),
         ),
-        
         dividerTheme: DividerThemeData(
           color: AppColors.glassBorder,
           thickness: 1,
