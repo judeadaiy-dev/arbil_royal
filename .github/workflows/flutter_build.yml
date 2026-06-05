@@ -19,13 +19,15 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # تنظيف فقط (لا تقم بإنشاء مشروع جديد!)
           flutter clean
           
-          # تحميل المكتبات
+          # 1. إنشاء المشروع (بما أنك لا تملك مجلد android)
+          flutter create . --platforms android
+          
+          # 2. تحديث المكتبات
           flutter pub get
           
-          # بناء الـ APK مباشرة (سيعتمد على مجلد android الموجود عندك)
+          # 3. إجبار بناء الـ APK بـ Gradle حديث
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
