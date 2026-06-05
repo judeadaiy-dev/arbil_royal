@@ -22,17 +22,13 @@ jobs:
           # 1. تنظيف شامل
           flutter clean
           
-          # 2. إجبار إنشاء ملفات الأندرويد لضمان التطابق
-          # استبدل com.arbilroyal بـ Package Name الخاص بتطبيقك
-          flutter create --platforms android --org com.arbilroyal .
-          
-          # 3. تحميل المكتبات
+          # 2. تحميل المكتبات
           flutter pub get
           
-          # 4. توليد الأيقونات (بما أننا أنشأنا المجلد، ستعمل الآن)
-          dart run flutter_launcher_icons
+          # 3. بناء الأصول (تأكد أن مجلد assets موجود)
+          flutter pub run build_runner build --delete-conflicting-outputs || echo "No build_runner needed"
           
-          # 5. البناء النهائي
+          # 4. البناء النهائي (بدون تعقيدات الخرائط السابقة)
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
@@ -40,4 +36,3 @@ jobs:
         with:
           name: arbil-royal-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
