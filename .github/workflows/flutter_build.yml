@@ -21,20 +21,17 @@ jobs:
         run: |
           flutter clean
           
-          # إنشاء المشروع
-          flutter create . --platforms android
+          # 1. إنشاء المشروع مع دعم AndroidX
+          flutter create . --platforms android --androidx
           
-          # 1. تحديث المكتبات إلى آخر إصدار لتجاوز الـ Bug
-          flutter pub upgrade --major-versions
+          # 2. تحديث ملف الخصائص لإجبار الـ AndroidX والـ Jetifier
+          echo "android.useAndroidX=true" > android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 2. حقن إعدادات التوافق في ملفات الـ Gradle التي تم إنشاؤها
-          # هذا السطر يضمن أن كل المكاتب (بما فيها app_links) ترى الـ Flutter SDK
-          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > android/gradle.properties
+          # 3. تحديث المكتبات بالكامل
+          flutter pub upgrade
           
-          # 3. إجبار المكتبات على قراءة الـ SDK الصحيح
-          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
-
-          # 4. البناء
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
