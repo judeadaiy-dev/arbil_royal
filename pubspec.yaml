@@ -4,13 +4,11 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.5.0 <4.0.0' # هذا التعديل يضمن توافق أفضل مع إصدارات Flutter الحديثة
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  flutter_lints: ^4.0.0
-  build_runner: ^2.4.9  # أضف هذا السطر هنا
   supabase_flutter: ^2.6.0
   google_fonts: ^6.2.1
   cached_network_image: ^3.4.0
@@ -26,6 +24,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  build_runner: ^2.4.9  # نعم، مكانها الصحيح هنا في dev_dependencies
 
 flutter:
   uses-material-design: true
