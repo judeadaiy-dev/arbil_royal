@@ -44,31 +44,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.account_circle_outlined, 
-              size: 120, color: AppColors.tealGreen.withOpacity(0.5)),
-            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 3),
+              ),
+              child: Icon(Icons.person_outline_rounded, 
+                size: 80, color: AppColors.tealGreen.withOpacity(0.7)),
+            ),
+            const SizedBox(height: 32),
             Text(
-              'سجل دخولك للوصول لحسابك',
+              'تصفح بحرية تامة',
               style: GoogleFonts.tajawal(
-                fontSize: 20, 
+                fontSize: 24, 
                 fontWeight: FontWeight.bold,
                 color: AppColors.darkOliveGrey,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'التسجيل مطلوب فقط عند التواصل أو الحجز',
+              style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 15),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AuthScreen()),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await AuthDialog.show(context);
+                  if (mounted) setState(() {});
+                },
+                icon: const Icon(Icons.login),
+                label: Text('تسجيل الدخول اختياري', style: GoogleFonts.tajawal(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.tealGreen,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              ),
-              child: Text('تسجيل الدخول', style: GoogleFonts.tajawal(fontSize: 18)),
             ),
           ],
         ),
@@ -82,25 +96,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        const SizedBox(height: 16),
         // كرت معلومات المستخدم
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white.withOpacity(0.8),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withOpacity(0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.tealGreen.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 35,
-                backgroundColor: AppColors.tealGreen,
-                child: Text(
-                  user!.email![0].toUpperCase(),
-                  style: GoogleFonts.tajawal(
-                    fontSize: 28, 
-                    color: Colors.white, 
-                    fontWeight: FontWeight.bold,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.tealGreen, AppColors.darkMatteGreen],
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.transparent,
+                  child: Text(
+                    user!.email![0].toUpperCase(),
+                    style: GoogleFonts.tajawal(
+                      fontSize: 28, 
+                      color: Colors.white, 
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -134,7 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // زر لوحة التحكم - يظهر بس للأدمن
         if (isAdmin)
           _buildMenuTile(
-            icon: Icons.admin_panel_settings,
+            icon: Icons.admin_panel_settings_rounded,
             title: 'لوحتي',
             subtitle: 'إدارة العقارات والمنشورات',
             onTap: () => Navigator.push(
@@ -144,25 +174,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         
         _buildMenuTile(
-          icon: Icons.favorite_border,
+          icon: Icons.favorite_rounded,
           title: 'المفضلة',
           subtitle: 'العقارات التي أعجبتك',
           onTap: () {
-            // تروح لتبويب المفضلة
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('قريباً')),
+            );
           },
         ),
         
         _buildMenuTile(
-          icon: Icons.support_agent,
+          icon: Icons.support_agent_rounded,
           title: 'الدعم الفني',
           subtitle: 'تواصل معنا للمساعدة',
-          onTap: () {
-            // واتساب دعم
+          onTap: () async {
+            final url = 'https://wa.me/9647500000000';
+            if (await canLaunchUrl(Uri.parse(url))) {
+              await launchUrl(Uri.parse(url));
+            }
           },
         ),
         
         _buildMenuTile(
-          icon: Icons.info_outline,
+          icon: Icons.info_rounded,
           title: 'عن التطبيق',
           subtitle: 'أربيل رويال الإصدار 1.0.0',
           onTap: () {},
@@ -171,19 +206,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         
         // زر تسجيل الخروج
-        ListTile(
-          leading: const Icon(Icons.logout, color: AppColors.errorRed),
-          title: Text(
-            'تسجيل الخروج',
-            style: GoogleFonts.tajawal(
-              fontWeight: FontWeight.bold,
-              color: AppColors.errorRed,
-            ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(15),
           ),
-          onTap: () async {
-            await supabase.auth.signOut();
-            if (mounted) setState(() {});
-          },
+          child: ListTile(
+            leading: const Icon(Icons.logout_rounded, color: AppColors.errorRed),
+            title: Text(
+              'تسجيل الخروج',
+              style: GoogleFonts.tajawal(
+                fontWeight: FontWeight.bold,
+                color: AppColors.errorRed,
+              ),
+            ),
+            onTap: () async {
+              await supabase.auth.signOut();
+              if (mounted) setState(() {});
+            },
+          ),
         ),
       ],
     );
@@ -199,12 +240,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.6),
+          color: Colors.white.withOpacity(0.7),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.white.withOpacity(0.5)),
         ),
         child: ListTile(
-          leading: Icon(icon, color: AppColors.tealGreen, size: 28),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.tealGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.tealGreen, size: 24),
+          ),
           title: Text(
             title,
             style: GoogleFonts.tajawal(
