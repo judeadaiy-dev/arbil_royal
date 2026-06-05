@@ -52,7 +52,7 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
           password: _password.text.trim(),
         );
       }
-      if (mounted) Navigator.pop(context, true); // رجع true = نجح
+      if (mounted) Navigator.pop(context, true);
     } on AuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +92,6 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // أيقونة + زر إغلاق
               Row(
                 children: [
                   Container(
@@ -101,7 +100,7 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
                       color: AppColors.tealGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Icon(Icons.lock_person_rounded, 
+                    child: const Icon(Icons.lock_person_rounded, 
                       size: 32, color: AppColors.tealGreen),
                   ),
                   const SizedBox(width: 12),
@@ -127,8 +126,6 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
                 style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13),
               ),
               const SizedBox(height: 24),
-              
-              // إيميل
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
@@ -142,8 +139,6 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
                   v!.isEmpty ||!v.contains('@')? 'أدخل إيميل صحيح' : null,
               ),
               const SizedBox(height: 16),
-              
-              // باسوورد
               TextFormField(
                 controller: _password,
                 obscureText: true,
@@ -157,21 +152,13 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
                   v!.length < 6? '6 أحرف على الأقل' : null,
               ),
               const SizedBox(height: 24),
-              
-              // زر الدخول
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.tealGreen,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
                   child: _isLoading
-                     ? const SizedBox(
+                    ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
@@ -181,8 +168,6 @@ class _AuthDialogContentState extends State<_AuthDialogContent> {
                 ),
               ),
               const SizedBox(height: 12),
-              
-              // تبديل تسجيل/دخول
               TextButton(
                 onPressed: () => setState(() => _isLogin =!_isLogin),
                 child: Text(
