@@ -9,12 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations: # أضف هذا السطر
+    sdk: flutter         # أضف هذا السطر
   supabase_flutter: ^2.5.6
   url_launcher: ^6.2.5
   google_fonts: ^6.2.1
   google_maps_flutter: ^2.7.0
-
-# لاحظ أن كلمة flutter و sdk كتبت مرة واحدة فقط تحت dependencies
 
 dev_dependencies:
   flutter_test:
