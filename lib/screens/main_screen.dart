@@ -5,13 +5,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../core/app_colors.dart';
 import '../main.dart';
 import '../models/property_model.dart';
+import '../widgets/ra_logo_painter.dart';
 import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'admin_panel_screen.dart';
 import 'property_details_screen.dart';
 import 'auth_screen.dart';
 
-// كرت الإشعار الزجاجي العصري
 class GlassNotification {
   static OverlayEntry? _overlayEntry;
 
@@ -49,9 +49,9 @@ class GlassNotification {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
+                  color: AppColors.glassWhite.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.6), width: 1.5),
+                  border: Border.all(color: AppColors.glassBorder, width: 1.5),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.tealGreen.withOpacity(0.3),
@@ -230,8 +230,8 @@ class _MainScreenState extends State<MainScreen> {
             if (!mounted) return;
             
             final newRecord = payload.newRecord;
-            final title = newRecord['title'] as String??? 'عقار جديد';
-            final imageUrl = newRecord['image_url'] as String??? '';
+            final title = newRecord['title'] as String? ?? 'عقار جديد';
+            final imageUrl = newRecord['image_url'] as String? ?? '';
             
             GlassNotification.show(
               context,
@@ -288,11 +288,12 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [AppColors.skyBlueTop, AppColors.whiteBottom],
+            stops: const [0.0, 0.6],
           ),
         ),
         child: SafeArea(
@@ -314,7 +315,7 @@ class _MainScreenState extends State<MainScreen> {
         if (!snapshot.hasData || snapshot.hasError) return const SizedBox.shrink();
         
         final role = snapshot.data?['role'] as String?;
-        if (role!= 'admin') return const SizedBox.shrink();
+        if (role != 'admin') return const SizedBox.shrink();
 
         return FloatingActionButton.extended(
           onPressed: () => _navigateWithFade(const AdminPanelScreen()),
@@ -343,7 +344,7 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    if (_errorMessage!= null) {
+    if (_errorMessage != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -371,22 +372,32 @@ class _MainScreenState extends State<MainScreen> {
 
     return Column(
       children: [
+        // الهيدر الجديد باللوجو المرسوم
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              const RALogo(width: 50, height: 35),
+              const SizedBox(width: 12),
               Text(
                 'أربيل رويال',
                 style: GoogleFonts.tajawal(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.darkOliveGrey,
                 ),
               ),
               const Spacer(),
-              IconButton(
-                onPressed: _loadProperties,
-                icon: const Icon(Icons.refresh, color: AppColors.tealGreen),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.glassWhite.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.glassBorder, width: 1),
+                ),
+                child: IconButton(
+                  onPressed: _loadProperties,
+                  icon: const Icon(Icons.refresh, color: AppColors.tealGreen),
+                ),
               ),
             ],
           ),
@@ -408,7 +419,7 @@ class _MainScreenState extends State<MainScreen> {
                   onSelected: (_) => setState(() => _selectedFilter = filter),
                   selectedColor: AppColors.tealGreen,
                   labelStyle: GoogleFonts.tajawal(
-                    color: isSelected? Colors.white : AppColors.darkOliveGrey,
+                    color: isSelected ? Colors.white : AppColors.darkOliveGrey,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -451,14 +462,15 @@ class _MainScreenState extends State<MainScreen> {
         onTap: () => _navigateWithFade(PropertyDetailsScreen(property: property)),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
+            color: AppColors.glassWhite.withOpacity(0.8),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.5)),
+            border: Border.all(color: AppColors.glassBorder, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
+                color: AppColors.glassShadow,
+                blurRadius: 20,
                 spreadRadius: 2,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -498,7 +510,7 @@ class _MainScreenState extends State<MainScreen> {
                           border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
                         ),
                         child: Text(
-                          isNew? 'جديد' : 'مميز',
+                          isNew ? 'جديد' : 'مميز',
                           style: GoogleFonts.tajawal(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -570,3 +582,43 @@ class _MainScreenState extends State<MainScreen> {
         Text(text, style: GoogleFonts.tajawal(color: AppColors.darkOliveGrey)),
       ],
     );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.glassWhite.withOpacity(0.9),
+        border: Border(
+          top: BorderSide(color: AppColors.glassBorder, width: 1.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.glassShadow,
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'الرئيسية',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_rounded),
+            label: 'الخريطة',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'حسابي',
+          ),
+        ],
+      ),
+    );
+  }
+}
