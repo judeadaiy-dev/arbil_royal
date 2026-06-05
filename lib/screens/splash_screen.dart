@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../core/app_colors.dart';
+import '../widgets/ra_logo_painter.dart';
 import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     
-    // أنيميشن Fade In + Scale
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -36,17 +36,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // الانتقال بعد 3 ثواني
     Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const MainScreen(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      );
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => const MainScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 500),
+          ),
+        );
+      }
     });
   }
 
@@ -59,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkOliveGrey, // أسود مزرق فخم
+      backgroundColor: AppColors.darkOliveGrey,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -67,7 +68,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             end: Alignment.bottomRight,
             colors: [
               AppColors.darkOliveGrey,
-              const Color(0xFF1A2327), // أسود أغمق
+              const Color(0xFF1A2327),
               AppColors.darkOliveGrey,
             ],
           ),
@@ -80,7 +81,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // أيقونة زجاجية
                   Container(
                     padding: const EdgeInsets.all(30),
                     decoration: BoxDecoration(
@@ -98,14 +98,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.apartment_rounded,
-                      color: AppColors.tealGreen,
-                      size: 80,
-                    ),
+                    child: const RALogo(width: 80, height: 60),
                   ),
                   const SizedBox(height: 30),
-                  // اسم التطبيق
                   Text(
                     "ROYAL",
                     style: GoogleFonts.tajawal(
@@ -132,7 +127,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                   ),
                   const SizedBox(height: 50),
-                  // لودنغ ناعم
                   SizedBox(
                     width: 40,
                     height: 40,
