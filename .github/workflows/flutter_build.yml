@@ -21,15 +21,19 @@ jobs:
         run: |
           flutter clean
           
-          # التحقق من وجود المجلد قبل الإنشاء لمنع المسح
-          if [ ! -d "android" ]; then
-            echo "Creating android directory..."
-            flutter create . --platforms android
-          fi
+          # 1. إنشاء المشروع
+          flutter create . --platforms android
           
+          # 2. حقن إعدادات app_links المطلوبة في ملف build.gradle
+          # هذا السطر يضيف تعريف الـ compileSdkVersion الذي تطلبه المكتبة
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
+          
+          # 3. التأكد من توفر المجلدات (إصلاح مسار android/build.gradle)
+          echo "buildscript { ext.kotlin_version = '1.9.0' }" > android/build.gradle
+          echo "allprojects { repositories { google(); mavenCentral() } }" >> android/build.gradle
+          
+          # 4. تحميل المكتبات والبناء
           flutter pub get
-          
-          # بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
