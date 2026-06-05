@@ -19,16 +19,13 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف
+          # تنظيف فقط (لا تقم بإنشاء مشروع جديد!)
           flutter clean
           
-          # 2. توليد ملفات الأندرويد من جديد (هذا يحل مشكلة الـ Gradle)
-          flutter create . --platforms android
-          
-          # 3. تحميل المكتبات
+          # تحميل المكتبات
           flutter pub get
           
-          # 4. بناء الـ APK
+          # بناء الـ APK مباشرة (سيعتمد على مجلد android الموجود عندك)
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
