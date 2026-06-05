@@ -13,23 +13,22 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # استخدم إصداراً أحدث يتوافق مع >=3.5.0
-          flutter-version: '3.24.0' 
+          flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف شامل
+          # 1. تنظيف
           flutter clean
           
-          # 2. تحميل المكتبات
+          # 2. توليد ملفات الأندرويد من جديد (هذا يحل مشكلة الـ Gradle)
+          flutter create . --platforms android
+          
+          # 3. تحميل المكتبات
           flutter pub get
           
-          # 3. بناء الأصول (تأكد أن مجلد assets موجود)
-          flutter pub run build_runner build --delete-conflicting-outputs || echo "No build_runner needed"
-          
-          # 4. البناء النهائي (بدون تعقيدات الخرائط السابقة)
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
