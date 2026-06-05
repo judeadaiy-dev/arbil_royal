@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'screens/main_screen.dart';
+import 'screens/splash_screen.dart';
 import 'core/app_colors.dart';
 
 Future<void> main() async {
@@ -95,6 +95,14 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
         ),
         
+        // ستايل الأزرار النصية
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.tealGreen,
+            textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w600),
+          ),
+        ),
+        
         // ستايل AppBar شفاف
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
@@ -136,6 +144,7 @@ class ArbilRoyalApp extends StatelessWidget {
           labelStyle: GoogleFonts.tajawal(color: AppColors.darkOliveGrey),
           hintStyle: GoogleFonts.tajawal(color: AppColors.greyLight),
           prefixIconColor: AppColors.tealGreen,
+          suffixIconColor: AppColors.tealGreen,
         ),
         
         // ستايل الـ Chips للفلاتر - زجاجي
@@ -193,9 +202,28 @@ class ArbilRoyalApp extends StatelessWidget {
             side: BorderSide(color: Colors.white.withOpacity(0.3), width: 1),
           ),
         ),
+        
+        // ستايل Card زجاجي افتراضي
+        cardTheme: CardThemeData(
+          color: AppColors.glassWhite.withOpacity(0.8),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: AppColors.glassBorder, width: 1.5),
+          ),
+          margin: const EdgeInsets.all(8),
+        ),
+        
+        // ستايل Divider
+        dividerTheme: DividerThemeData(
+          color: AppColors.glassBorder,
+          thickness: 1,
+          space: 1,
+        ),
       ),
       
-      home: const MainScreen(),
+      // يبدأ من SplashScreen
+      home: const SplashScreen(),
     );
   }
 }
