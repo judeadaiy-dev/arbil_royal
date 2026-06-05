@@ -30,13 +30,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1).animate(
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
     _controller.forward();
 
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 5), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -60,88 +60,87 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkOliveGrey,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.darkOliveGrey,
-              const Color(0xFF1A2327),
-              AppColors.darkOliveGrey,
-            ],
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // الصورة كخلفية
+          Image.asset(
+            'assets/images/splash_bg.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(color: AppColors.darkOliveGrey);
+            },
           ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(30),
-                    decoration: BoxDecoration(
-                      color: AppColors.tealGreen.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.tealGreen.withOpacity(0.3),
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.tealGreen.withOpacity(0.4),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const RALogo(width: 80, height: 60),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    "ROYAL",
-                    style: GoogleFonts.tajawal(
-                      color: AppColors.tealGreen,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      shadows: [
-                        Shadow(
-                          color: AppColors.tealGreen.withOpacity(0.5),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "أربيل رويال",
-                    style: GoogleFonts.tajawal(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                  SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.tealGreen.withOpacity(0.5),
-                      ),
-                    ),
-                  ),
+          // طبقة شفافة فخمة
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.4),
+                  Colors.black.withOpacity(0.7),
                 ],
               ),
             ),
           ),
-        ),
+          // المحتوى
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(30),
+                      decoration: BoxDecoration(
+                        color: AppColors.tealGreen.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.tealGreen.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.tealGreen.withOpacity(0.4),
+                            blurRadius: 30,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const RALogo(width: 80, height: 60),
+                    ),
+                    const SizedBox(height: 30),
+                    Text(
+                      "ROYAL",
+                      style: GoogleFonts.tajawal(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                        shadows: [
+                          Shadow(color: AppColors.tealGreen, blurRadius: 20),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "أربيل رويال",
+                      style: GoogleFonts.tajawal(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
