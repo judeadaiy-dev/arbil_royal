@@ -21,19 +21,20 @@ jobs:
         run: |
           flutter clean
           
-          # 1. إنشاء المشروع
+          # إنشاء المشروع
           flutter create . --platforms android
           
-          # 2. حقن إعدادات app_links المطلوبة في ملف build.gradle
-          # هذا السطر يضيف تعريف الـ compileSdkVersion الذي تطلبه المكتبة
+          # حقن تعريفات الـ Flutter في ملف build.gradle الرئيسي ليتعرف عليها app_links
+          echo "subprojects { project.evaluationDependsOn(':app') }" >> android/build.gradle
+          
+          # إضافة تعريف الـ SDK يدوياً ليتجاوز خطأ compileSdkVersion
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
           sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
-          
-          # 3. التأكد من توفر المجلدات (إصلاح مسار android/build.gradle)
-          echo "buildscript { ext.kotlin_version = '1.9.0' }" > android/build.gradle
-          echo "allprojects { repositories { google(); mavenCentral() } }" >> android/build.gradle
-          
-          # 4. تحميل المكتبات والبناء
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
+
           flutter pub get
+          
+          # البناء
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
