@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../core/app_colors.dart';
 import '../main.dart';
 import '../models/property_model.dart';
@@ -10,7 +11,6 @@ import 'map_screen.dart';
 import 'profile_screen.dart';
 import 'admin_panel_screen.dart';
 import 'property_details_screen.dart';
-import 'auth_screen.dart';
 
 class GlassNotification {
   static OverlayEntry? _overlayEntry;
@@ -173,17 +173,33 @@ class _MainScreenState extends State<MainScreen> {
   List<PropertyModel> _allProperties = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _hasInternet = true;
 
   final List<String> _filters = ['الكل', 'جديد', 'منازل', 'شقق', 'أراضي', 'مميز'];
 
   @override
   void initState() {
     super.initState();
+    _checkInternet();
     _loadProperties();
     _listenToNewProperties();
   }
 
+  Future<void> _checkInternet() async {
+    final result = await Connectivity().checkConnectivity();
+    setState(() => _hasInternet = result!= ConnectivityResult.none);
+    
+    Connectivity().onConnectivityChanged.listen((result) {
+      if (mounted) {
+        setState(() => _hasInternet = result!= ConnectivityResult.none);
+        if (_hasInternet && _allProperties.isEmpty) _loadProperties();
+      }
+    });
+  }
+
   Future<void> _loadProperties() async {
+    if (!_hasInternet) return;
+    
     try {
       setState(() {
         _isLoading = true;
@@ -191,10 +207,10 @@ class _MainScreenState extends State<MainScreen> {
       });
 
       final response = await supabase
-        .from('properties')
-        .select()
-        .eq('is_active', true)
-        .order('created_at', ascending: false);
+       .from('properties')
+       .select()
+       .eq('is_active', true)
+       .order('created_at', ascending: false);
 
       if (mounted) {
         setState(() {
@@ -221,8 +237,8 @@ class _MainScreenState extends State<MainScreen> {
 
   void _listenToNewProperties() {
     supabase
-      .channel('public:properties')
-      .onPostgresChanges(
+     .channel('public:properties')
+     .onPostgresChanges(
           event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'properties',
@@ -230,8 +246,8 @@ class _MainScreenState extends State<MainScreen> {
             if (!mounted) return;
             
             final newRecord = payload.newRecord;
-            final title = newRecord['title'] as String? ?? 'عقار جديد';
-            final imageUrl = newRecord['image_url'] as String? ?? '';
+            final title = newRecord['title'] as String??? 'عقار جديد';
+            final imageUrl = newRecord['image_url'] as String??? '';
             
             GlassNotification.show(
               context,
@@ -246,7 +262,7 @@ class _MainScreenState extends State<MainScreen> {
             _loadProperties();
           },
         )
-      .subscribe();
+     .subscribe();
   }
 
   List<PropertyModel> get _filteredProperties {
@@ -280,6 +296,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasInternet) return _buildNoInternetScreen();
+
     final pages = [
       _buildHomeTab(),
       const MapScreen(),
@@ -305,6 +323,78 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildNoInternetScreen() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const RALogo(width: 50, height: 35),
+                  const SizedBox(width: 12),
+                  Text(
+                    'أربيل رويال',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkOliveGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.wifi_off_rounded, size: 120, color: Colors.grey[300]),
+                      const SizedBox(height: 24),
+                      Text(
+                        'لا يوجد اتصال بالإنترنت',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.tealGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'تحقق من الاتصال وحاول مرة أخرى',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await _checkInternet();
+                          if (_hasInternet) _loadProperties();
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('إعادة المحاولة'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
   Widget? _buildAdminFab() {
     final user = supabase.auth.currentUser;
     if (user == null) return null;
@@ -315,7 +405,7 @@ class _MainScreenState extends State<MainScreen> {
         if (!snapshot.hasData || snapshot.hasError) return const SizedBox.shrink();
         
         final role = snapshot.data?['role'] as String?;
-        if (role != 'admin') return const SizedBox.shrink();
+        if (role!= 'admin') return const SizedBox.shrink();
 
         return FloatingActionButton.extended(
           onPressed: () => _navigateWithFade(const AdminPanelScreen()),
@@ -344,7 +434,7 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
 
-    if (_errorMessage != null) {
+    if (_errorMessage!= null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -372,7 +462,6 @@ class _MainScreenState extends State<MainScreen> {
 
     return Column(
       children: [
-        // الهيدر الجديد باللوجو المرسوم
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -419,7 +508,7 @@ class _MainScreenState extends State<MainScreen> {
                   onSelected: (_) => setState(() => _selectedFilter = filter),
                   selectedColor: AppColors.tealGreen,
                   labelStyle: GoogleFonts.tajawal(
-                    color: isSelected ? Colors.white : AppColors.darkOliveGrey,
+                    color: isSelected? Colors.white : AppColors.darkOliveGrey,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -430,7 +519,7 @@ class _MainScreenState extends State<MainScreen> {
         const SizedBox(height: 16),
         Expanded(
           child: _filteredProperties.isEmpty
-            ? Center(
+           ? Center(
                   child: Text(
                     'لا توجد عقارات في هذا القسم',
                     style: GoogleFonts.tajawal(fontSize: 16, color: Colors.grey[600]),
@@ -469,156 +558,4 @@ class _MainScreenState extends State<MainScreen> {
               BoxShadow(
                 color: AppColors.glassShadow,
                 blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: CachedNetworkImage(
-                      imageUrl: property.imageUrl,
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        height: 200,
-                        color: AppColors.greyLight.withOpacity(0.3),
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        height: 200,
-                        color: AppColors.greyLight,
-                        child: const Icon(Icons.home_work, size: 60),
-                      ),
-                    ),
-                  ),
-                  if (isNew || property.isFeatured)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.tealGreen.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-                        ),
-                        child: Text(
-                          isNew ? 'جديد' : 'مميز',
-                          style: GoogleFonts.tajawal(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      property.title,
-                      style: GoogleFonts.tajawal(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkOliveGrey,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: AppColors.greyLight),
-                        const SizedBox(width: 4),
-                        Text(
-                          property.location,
-                          style: GoogleFonts.tajawal(color: Colors.grey[600]),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text(
-                          '\$${property.price}',
-                          style: GoogleFonts.tajawal(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.tealGreen,
-                          ),
-                        ),
-                        const Spacer(),
-                        _buildSpec(Icons.bed_rounded, '${property.rooms}'),
-                        const SizedBox(width: 12),
-                        _buildSpec(Icons.bathtub_rounded, '${property.bathrooms}'),
-                        const SizedBox(width: 12),
-                        _buildSpec(Icons.square_foot_rounded, '${property.area}m²'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildSpec(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: AppColors.tealGreen),
-        const SizedBox(width: 4),
-        Text(text, style: GoogleFonts.tajawal(color: AppColors.darkOliveGrey)),
-      ],
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.glassWhite.withOpacity(0.9),
-        border: Border(
-          top: BorderSide(color: AppColors.glassBorder, width: 1.5),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.glassShadow,
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_rounded),
-            label: 'الرئيسية',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map_rounded),
-            label: 'الخريطة',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'حسابي',
-          ),
-        ],
-      ),
-    );
-  }
-}
