@@ -27,7 +27,6 @@ class ArbilRoyalApp extends StatelessWidget {
       title: 'أربيل رويال',
       debugShowCheckedModeBanner: false,
       
-      // دعم اللغة العربية RTL
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -39,12 +38,10 @@ class ArbilRoyalApp extends StatelessWidget {
       ],
       locale: const Locale('ar', ''),
       
-      // الثيم الكامل بتصميم Glassmorphism
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: AppColors.backgroundColor,
         
-        // ألوان الهوية
         primaryColor: AppColors.tealGreen,
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.tealGreen,
@@ -54,13 +51,11 @@ class ArbilRoyalApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
         
-        // خط Tajawal لكل التطبيق
         textTheme: GoogleFonts.tajawalTextTheme().apply(
           bodyColor: AppColors.darkOliveGrey,
           displayColor: AppColors.darkOliveGrey,
         ),
         
-        // ستايل الأزرار المرتفعة - زجاجي
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.tealGreen,
@@ -82,7 +77,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
         ),
         
-        // ستايل الأزرار الخارجية
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.tealGreen,
@@ -95,7 +89,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
         ),
         
-        // ستايل الأزرار النصية
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AppColors.tealGreen,
@@ -103,7 +96,6 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
         ),
         
-        // ستايل AppBar شفاف
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -116,7 +108,6 @@ class ArbilRoyalApp extends StatelessWidget {
           iconTheme: const IconThemeData(color: AppColors.darkOliveGrey),
         ),
         
-        // ستايل حقول الإدخال زجاجي
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.glassWhite.withOpacity(0.8),
@@ -147,7 +138,6 @@ class ArbilRoyalApp extends StatelessWidget {
           suffixIconColor: AppColors.tealGreen,
         ),
         
-        // ستايل الـ Chips للفلاتر - زجاجي
         chipTheme: ChipThemeData(
           backgroundColor: AppColors.glassWhite.withOpacity(0.7),
           selectedColor: AppColors.tealGreen,
@@ -162,7 +152,6 @@ class ArbilRoyalApp extends StatelessWidget {
           pressElevation: 2,
         ),
         
-        // ستايل SnackBar زجاجي
         snackBarTheme: SnackBarThemeData(
           backgroundColor: AppColors.darkOliveGrey.withOpacity(0.95),
           contentTextStyle: GoogleFonts.tajawal(color: Colors.white),
@@ -174,7 +163,6 @@ class ArbilRoyalApp extends StatelessWidget {
           elevation: 10,
         ),
         
-        // ستايل BottomNavigationBar زجاجي
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: Colors.white.withOpacity(0.9),
           selectedItemColor: AppColors.tealGreen,
@@ -185,14 +173,13 @@ class ArbilRoyalApp extends StatelessWidget {
           elevation: 0,
         ),
         
-        // ستايل Dialog زجاجي
-        dialogTheme: DialogThemeData(
+        // تم التصحيح: DialogTheme بدلاً من DialogThemeData
+        dialogTheme: DialogTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         ),
         
-        // ستايل FloatingActionButton
         floatingActionButtonTheme: FloatingActionButtonThemeData(
           backgroundColor: AppColors.tealGreen,
           foregroundColor: Colors.white,
@@ -203,8 +190,8 @@ class ArbilRoyalApp extends StatelessWidget {
           ),
         ),
         
-        // ستايل Card زجاجي افتراضي
-        cardTheme: CardThemeData(
+        // تم التصحيح: CardTheme بدلاً من CardThemeData
+        cardTheme: CardTheme(
           color: AppColors.glassWhite.withOpacity(0.8),
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -214,7 +201,6 @@ class ArbilRoyalApp extends StatelessWidget {
           margin: const EdgeInsets.all(8),
         ),
         
-        // ستايل Divider
         dividerTheme: DividerThemeData(
           color: AppColors.glassBorder,
           thickness: 1,
@@ -222,7 +208,6 @@ class ArbilRoyalApp extends StatelessWidget {
         ),
       ),
       
-      // يبدأ من SplashScreen
       home: const SplashScreen(),
     );
   }
