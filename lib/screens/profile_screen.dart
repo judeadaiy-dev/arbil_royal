@@ -24,10 +24,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadFavorites() async {
     try {
       final response = await supabase
-          .from('properties')
-          .select()
-          .eq('is_featured', true)
-          .limit(10);
+         .from('properties')
+         .select()
+         .eq('is_featured', true)
+         .limit(10);
 
       if (mounted) {
         setState(() {
@@ -62,11 +62,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.tealGreen))
+         ? const Center(child: CircularProgressIndicator(color: AppColors.tealGreen))
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // كارد البروفايل
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -105,35 +104,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        user?.email ?? 'مستخدم',
+                        user?.email?? 'مستخدم',
                         style: GoogleFonts.tajawal(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.darkOliveGrey,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'عضو منذ 2024',
-                        style: GoogleFonts.tajawal(
-                          fontSize: 14,
-                          color: AppColors.greyLight,
-                        ),
-                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                
-                // الإعدادات
                 _buildSectionTitle('الإعدادات'),
                 const SizedBox(height: 12),
                 _buildMenuItem(Icons.notifications_rounded, 'الإشعارات', () {}),
                 _buildMenuItem(Icons.language_rounded, 'اللغة', () {}),
-                _buildMenuItem(Icons.dark_mode_rounded, 'الوضع الليلي', () {}),
                 const SizedBox(height: 24),
-                
-                // العقارات المفضلة
                 _buildSectionTitle('العقارات المفضلة'),
                 const SizedBox(height: 12),
                 if (_favorites.isEmpty)
@@ -156,11 +142,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   )
                 else
-                  ..._favorites.map((property) => _buildFavoriteCard(property)),
-                
+                 ..._favorites.map((property) => _buildFavoriteCard(property)),
                 const SizedBox(height: 24),
-                
-                // تسجيل الخروج
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
