@@ -18,7 +18,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  StreamSubscription? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   bool _isConnected = true;
 
   final List<Widget> _screens = [
@@ -31,7 +31,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _checkConnectivity();
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(_updateConnectionStatus);
+    _connectivitySubscription = Connectivity()
+       .onConnectivityChanged
+       .listen(_updateConnectionStatus);
   }
 
   @override
@@ -45,10 +47,10 @@ class _MainScreenState extends State<MainScreen> {
     _updateConnectionStatus(result);
   }
 
-  void _updateConnectionStatus(ConnectivityResult result) {
+  void _updateConnectionStatus(List<ConnectivityResult> result) {
     if (mounted) {
       setState(() {
-        _isConnected = result != ConnectivityResult.none;
+        _isConnected =!result.contains(ConnectivityResult.none);
       });
     }
   }
@@ -61,8 +63,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     if (!_isConnected) {
       return const ErrorScreen(
-        errorMessage: 'لا يوجد اتصال بالإنترنت',
-        errorDetails: 'يرجى التحقق من اتصالك والمحاولة مرة أخرى',
+        error: 'لا يوجد اتصال بالإنترنت\nيرجى التحقق من اتصالك والمحاولة مرة أخرى',
       );
     }
 
@@ -110,7 +111,7 @@ class _MainScreenState extends State<MainScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.tealGreen : Colors.transparent,
+          color: isSelected? AppColors.tealGreen : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Column(
@@ -118,16 +119,16 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : AppColors.greyLight,
+              color: isSelected? Colors.white : AppColors.greyLight,
               size: 26,
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: GoogleFonts.tajawal(
-                color: isSelected ? Colors.white : AppColors.greyLight,
+                color: isSelected? Colors.white : AppColors.greyLight,
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isSelected? FontWeight.bold : FontWeight.normal,
               ),
             ),
           ],
