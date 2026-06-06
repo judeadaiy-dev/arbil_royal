@@ -1,43 +1,34 @@
 name: Build Flutter APK
-on: 
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: 
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
-
-      - name: Build & Compile
+      
+      - name: Build Android Only
         run: |
-          # 1. تنظيف وإعداد المشروع (هنا نستخدم create مرة واحدة فقط)
-          flutter clean
-          flutter create .
+          # 1. تنظيف شامل للمشروع
+          rm -rf android
           
-          # 2. حقن تعريفات Flutter (حل مشكلة عدم وجود خاصية flutter)
-          # نقوم بإضافة التعريف في بداية ملف build.gradle
-          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
+          # 2. إنشاء هيكلية أندرويد فقط وتجنب أي ملفات منصات أخرى
+          flutter create . --platforms=android
+          flutter pub get
           
-          # 3. تحديث نسخة Kotlin
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          # 3. حقن تعريفات Flutter المطلوبة للمكتبات (مثل app_links)
+          # هذا السطر يحل مشكلة Could not get unknown property 'flutter'
+          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
           
-          # 4. تحديث Gradle Wrapper (لضمان عمل SDK 34)
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          
-          # 5. تفعيل AndroidX و Jetifier
+          # 4. إعداد خصائص الـ Gradle لتوافق المكتبات
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 6. بناء الـ APK
+          # 5. بناء الـ APK بنسخة الإصدار
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
