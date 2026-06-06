@@ -22,15 +22,13 @@ jobs:
           flutter clean
           flutter create .
           
-          # حقن إعدادات الـ Flutter التي تبحث عنها مكتبة app_links
-          # نضعها في ملف gradle.properties ليراها Gradle في أي مشروع فرعي
-          echo "flutter.compileSdkVersion=34" >> android/gradle.properties
-          echo "flutter.minSdkVersion=21" >> android/gradle.properties
-          echo "flutter.targetSdkVersion=34" >> android/gradle.properties
+          # 1. تحديث نسخة Kotlin إجبارياً في ملف الـ build.gradle
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
           
-          # إضافة تعريف خاص للمكتبة لتتوقف عن الشكوى
-          echo "ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" >> android/build.gradle
+          # 2. تحديث نسخة الـ Gradle Wrapper لضمان التوافق مع الكوتلن الحديث
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           
+          # 3. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
