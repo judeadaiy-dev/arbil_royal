@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../core/app_colors.dart';
 import '../main.dart';
 
@@ -15,6 +17,7 @@ class AdminPanelScreen extends StatefulWidget {
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final _formKey = GlobalKey<FormState>();
   final MapController _mapController = MapController();
+  final ImagePicker _picker = ImagePicker();
   
   String _title = '';
   String _location = '';
@@ -27,12 +30,93 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   bool _isFeatured = false;
   
   LatLng _selectedLocation = const LatLng(36.1911, 44.0091);
+  File? _selectedImage;
+  
   bool _isLoading = false;
+  bool _isUploadingImage = false;
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1920,
+      );
+      
+      if (image!= null) {
+        setState(() {
+          _selectedImage = File(image.path);
+          _isUploadingImage = true;
+        });
+        
+        await _uploadImage();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في اختيار الصورة: $e', style: GoogleFonts.tajawal()),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    if (_selectedImage == null) return;
+    
+    try {
+      final fileName = 'property_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final filePath = 'properties/$fileName';
+      
+      await supabase.storage.from('images').upload(
+        filePath,
+        _selectedImage!,
+        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+      );
+      
+      final imageUrl = supabase.storage.from('images').getPublicUrl(filePath);
+      
+      if (mounted) {
+        setState(() {
+          _imageUrl = imageUrl;
+          _isUploadingImage = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم رفع الصورة بنجاح', style: GoogleFonts.tajawal()),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('فشل رفع الصورة: $e', style: GoogleFonts.tajawal()),
+            backgroundColor: AppColors.errorRed,
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _saveProperty() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_imageUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('يرجى رفع صورة للعقار', style: GoogleFonts.tajawal()),
+          backgroundColor: AppColors.warningOrange,
+        ),
+      );
+      return;
+    }
+    
     _formKey.currentState!.save();
-
     setState(() => _isLoading = true);
 
     try {
@@ -77,35 +161,102 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('إضافة عقار جديد')),
+      backgroundColor: AppColors.skyBlueTop,
+      appBar: AppBar(
+        title: Text('إضافة عقار جديد', style: GoogleFonts.tajawal(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'عنوان العقار'),
+            // رفع الصورة
+            _buildSectionTitle('صورة العقار *'),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _isUploadingImage? null : _pickImage,
+              child: Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: AppColors.glassWhite.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: _imageUrl.isEmpty? AppColors.errorRed : AppColors.glassBorder,
+                    width: 2,
+                  ),
+                ),
+                child: _isUploadingImage
+                 ? const Center(child: CircularProgressIndicator(color: AppColors.tealGreen))
+                    : _selectedImage!= null
+                     ? ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_rounded, size: 50, color: AppColors.tealGreen),
+                              const SizedBox(height: 12),
+                              Text(
+                                'اضغط لاختيار صورة من الاستوديو',
+                                style: GoogleFonts.tajawal(
+                                  color: AppColors.darkOliveGrey,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'مطلوبة',
+                                style: GoogleFonts.tajawal(
+                                  color: AppColors.errorRed,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+              ),
+            ),
+            if (_imageUrl.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: AppColors.successGreen, size: 16),
+                    const SizedBox(width: 6),
+                    Text('تم رفع الصورة', style: GoogleFonts.tajawal(color: AppColors.successGreen, fontSize: 12)),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _pickImage,
+                      child: Text('تغيير الصورة', style: GoogleFonts.tajawal(color: AppColors.tealGreen)),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 24),
+            
+            // باقي الحقول
+            _buildTextField(
+              label: 'عنوان العقار *',
               validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _title = val!,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'اسم المنطقة - مثلا: شارع 60'),
+            _buildTextField(
+              label: 'اسم المنطقة - مثلا: شارع 60 *',
               validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _location = val!,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'السعر'),
+            _buildTextField(
+              label: 'السعر *',
               keyboardType: TextInputType.number,
               validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _price = double.parse(val!),
             ),
             const SizedBox(height: 24),
-            Text(
-              'اضغط على الخريطة لتحديد موقع العقار:',
-              style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            _buildSectionTitle('موقع العقار على الخريطة'),
             const SizedBox(height: 12),
             Container(
               height: 300,
@@ -157,24 +308,24 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(labelText: 'غرف'),
+                  child: _buildTextField(
+                    label: 'غرف',
                     keyboardType: TextInputType.number,
                     onSaved: (val) => _rooms = int.parse(val?? '0'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(labelText: 'حمامات'),
+                  child: _buildTextField(
+                    label: 'حمامات',
                     keyboardType: TextInputType.number,
                     onSaved: (val) => _bathrooms = int.parse(val?? '0'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(labelText: 'المساحة م²'),
+                  child: _buildTextField(
+                    label: 'المساحة م²',
                     keyboardType: TextInputType.number,
                     onSaved: (val) => _area = double.parse(val?? '0'),
                   ),
@@ -182,18 +333,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'رابط الصورة'),
-              onSaved: (val) => _imageUrl = val!,
-            ),
-            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _type,
-              decoration: const InputDecoration(labelText: 'نوع العقار'),
-              items: const [
-                DropdownMenuItem(value: 'house', child: Text('منزل')),
-                DropdownMenuItem(value: 'apartment', child: Text('شقة')),
-                DropdownMenuItem(value: 'land', child: Text('أرض')),
+              decoration: InputDecoration(
+                labelText: 'نوع العقار',
+                labelStyle: GoogleFonts.tajawal(),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                filled: true,
+                fillColor: AppColors.glassWhite.withOpacity(0.7),
+              ),
+              items: [
+                DropdownMenuItem(value: 'house', child: Text('منزل', style: GoogleFonts.tajawal())),
+                DropdownMenuItem(value: 'apartment', child: Text('شقة', style: GoogleFonts.tajawal())),
+                DropdownMenuItem(value: 'land', child: Text('أرض', style: GoogleFonts.tajawal())),
+                DropdownMenuItem(value: 'commercial', child: Text('تجاري', style: GoogleFonts.tajawal())),
               ],
               onChanged: (val) => setState(() => _type = val!),
             ),
@@ -202,17 +355,64 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               title: Text('عقار مميز', style: GoogleFonts.tajawal()),
               value: _isFeatured,
               onChanged: (val) => setState(() => _isFeatured = val!),
+              activeColor: AppColors.tealGreen,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              tileColor: AppColors.glassWhite.withOpacity(0.7),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading? null : _saveProperty,
+              onPressed: _isLoading || _isUploadingImage? null : _saveProperty,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: AppColors.tealGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              ),
               child: _isLoading
-                ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('حفظ العقار'),
+               ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      'حفظ العقار',
+                      style: GoogleFonts.tajawal(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.tajawal(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.darkMatteGreen,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    void Function(String?)? onSaved,
+  }) {
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.tajawal(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+        filled: true,
+        fillColor: AppColors.glassWhite.withOpacity(0.7),
+      ),
+      keyboardType: keyboardType,
+      validator: validator,
+      onSaved: onSaved,
     );
   }
 }
