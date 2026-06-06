@@ -31,7 +31,6 @@ class PropertyModel {
     this.longitude,
   });
 
-  // Getters متوافقة مع الكود القديم
   double? get lat => latitude;
   double? get lng => longitude;
 
