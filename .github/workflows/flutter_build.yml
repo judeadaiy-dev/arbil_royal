@@ -13,7 +13,6 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # نستخدم إصدار أحدث لتجاوز خطأ الإصدار الأول
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
@@ -21,15 +20,18 @@ jobs:
       - name: Build & Compile
         run: |
           flutter clean
-          
-          # إنشاء المشروع بدون تعقيدات (الأمر `--androidx` لم يعد موجوداً)
           flutter create . --platforms android
           
-          # تحديث المكتبات
-          flutter pub get
+          # إضافة حل جذري لمشكلة app_links
+          echo "subprojects { project.evaluationDependsOn(':app') }" >> android/build.gradle
           
-          # البناء
+          # بناء التطبيق
           flutter build apk --release --no-tree-shake-icons
+          
+          # استخراج الـ SHA-1 لـ Firebase
+          echo "--- YOUR SHA-1 KEY FOR FIREBASE ---"
+          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androidkey
+          echo "-----------------------------------"
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
