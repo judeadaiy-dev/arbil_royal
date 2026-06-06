@@ -1,36 +1,48 @@
 name: Build Flutter APK
-on: [push]
+on: 
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: 
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
           flutter-version: '3.24.0'
           channel: 'stable'
-      
-      - name: Build Android
+          cache: true
+
+      - name: Build & Compile
         run: |
-          # 1. إعداد المشروع الأساسي
-          flutter pub get
+          # 1. تنظيف وإنشاء المشروع
+          flutter clean
+          flutter create .
           
-          # 2. إنشاء ملف إعدادات التوافق (هذا يحل مشكلة app_links جذرياً)
-          # نقوم بإنشاء ملف يقرؤه Gradle ويأخذ منه تعريفات الـ SDK
-          echo "ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; }" > android/gradle_config.gradle
+          # 2. إعداد خصائص الـ Gradle (قبل أي شيء)
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 3. ربط ملف الإعدادات بالـ build.gradle الرئيسي
-          # إضافة سطر واحد فقط في بداية ملف build.gradle
-          sed -i '1i apply from: "gradle_config.gradle"' android/build.gradle
+          # 3. تحديث الـ Wrapper
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           
-          # 4. إجبار المكتبات على استخدام هذه التعريفات
-          # التعديل على مستوى التطبيق
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion ext.flutter_compileSdkVersion/g' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion ext.flutter_minSdkVersion/g' android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion ext.flutter_targetSdkVersion/g' android/app/build.gradle
+          # 4. الحقن الجذري: إضافة تعريفات Flutter في بداية build.gradle
+          # نستخدم sed لإضافة التعريف في السطر الأول لضمان رؤيته من قبل جميع المكتبات
+          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
           
-          # 5. البناء
+          # 5. ربط تطبيق الأندرويد بالتعريفات الجديدة
+          sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g" android/app/build.gradle
+          sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
+          sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g" android/app/build.gradle
+          
+          # 6. تحديث نسخة Kotlin
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          
+          # 7. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
