@@ -19,16 +19,18 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف عميق جداً
           flutter clean
-          
-          # 2. حذف المكتبة المتمردة نهائياً من كل مكان في السيرفر
-          find /home/runner/.pub-cache -name "*app_links*" -exec rm -rf {} +
-          
-          # 3. إنشاء المشروع
           flutter create .
           
-          # 4. بناء الـ APK
+          # حقن إعدادات الـ Flutter التي تبحث عنها مكتبة app_links
+          # نضعها في ملف gradle.properties ليراها Gradle في أي مشروع فرعي
+          echo "flutter.compileSdkVersion=34" >> android/gradle.properties
+          echo "flutter.minSdkVersion=21" >> android/gradle.properties
+          echo "flutter.targetSdkVersion=34" >> android/gradle.properties
+          
+          # إضافة تعريف خاص للمكتبة لتتوقف عن الشكوى
+          echo "ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" >> android/build.gradle
+          
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
