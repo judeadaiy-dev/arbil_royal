@@ -1,273 +1,270 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/app_colors.dart';
+import '../models/property_model.dart';
 import '../main.dart';
-import 'admin_panel_screen.dart';
-import 'auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
-  // غير هذا الإيميل لإيميل الأدمن مالك
-  static const String adminEmail = 'barqaday@gmail.com';
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  User? get user => supabase.auth.currentUser;
+  List<PropertyModel> _favorites = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final response = await supabase
+          .from('properties')
+          .select()
+          .eq('is_featured', true)
+          .limit(10);
+
+      if (mounted) {
+        setState(() {
+          _favorites = response.map((json) => PropertyModel.fromJson(json)).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signOut() async {
+    await supabase.auth.signOut();
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/auth', (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.skyBlueTop, AppColors.whiteBottom],
-          ),
-        ),
-        child: SafeArea(
-          child: user == null? _buildNotLoggedIn() : _buildLoggedIn(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotLoggedIn() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.tealGreen.withOpacity(0.3), width: 3),
-              ),
-              child: Icon(Icons.person_outline_rounded, 
-                size: 80, color: AppColors.tealGreen.withOpacity(0.7)),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'تصفح بحرية تامة',
-              style: GoogleFonts.tajawal(
-                fontSize: 24, 
-                fontWeight: FontWeight.bold,
-                color: AppColors.darkOliveGrey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'التسجيل مطلوب فقط عند التواصل أو الحجز',
-              style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 15),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  await AuthDialog.show(context);
-                  if (mounted) setState(() {});
-                },
-                icon: const Icon(Icons.login),
-                label: Text('تسجيل الدخول اختياري', style: GoogleFonts.tajawal(fontSize: 16)),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoggedIn() {
-    final isAdmin = user?.email == ProfileScreen.adminEmail;
+    final user = supabase.auth.currentUser;
     
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const SizedBox(height: 16),
-        // كرت معلومات المستخدم
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.5)),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.tealGreen.withOpacity(0.1),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.tealGreen, AppColors.darkMatteGreen],
+    return Scaffold(
+      backgroundColor: AppColors.skyBlueTop,
+      appBar: AppBar(
+        title: Text(
+          'حسابي',
+          style: GoogleFonts.tajawal(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.tealGreen))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // كارد البروفايل
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.glassWhite.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(color: AppColors.glassBorder, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.glassShadow,
+                        blurRadius: 20,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.tealGreen,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.tealGreen.withOpacity(0.4),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user?.email ?? 'مستخدم',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.darkOliveGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'عضو منذ 2024',
+                        style: GoogleFonts.tajawal(
+                          fontSize: 14,
+                          color: AppColors.greyLight,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: CircleAvatar(
-                  radius: 35,
-                  backgroundColor: Colors.transparent,
-                  child: Text(
-                    user!.email![0].toUpperCase(),
-                    style: GoogleFonts.tajawal(
-                      fontSize: 28, 
-                      color: Colors.white, 
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 24),
+                
+                // الإعدادات
+                _buildSectionTitle('الإعدادات'),
+                const SizedBox(height: 12),
+                _buildMenuItem(Icons.notifications_rounded, 'الإشعارات', () {}),
+                _buildMenuItem(Icons.language_rounded, 'اللغة', () {}),
+                _buildMenuItem(Icons.dark_mode_rounded, 'الوضع الليلي', () {}),
+                const SizedBox(height: 24),
+                
+                // العقارات المفضلة
+                _buildSectionTitle('العقارات المفضلة'),
+                const SizedBox(height: 12),
+                if (_favorites.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(40),
+                    decoration: BoxDecoration(
+                      color: AppColors.glassWhite.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.glassBorder),
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'مرحباً بك',
-                      style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 14),
+                    child: Column(
+                      children: [
+                        Icon(Icons.favorite_border, size: 50, color: AppColors.greyLight),
+                        const SizedBox(height: 12),
+                        Text(
+                          'لا توجد عقارات مفضلة',
+                          style: GoogleFonts.tajawal(color: AppColors.greyLight),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user!.email!,
+                  )
+                else
+                  ..._favorites.map((property) => _buildFavoriteCard(property)),
+                
+                const SizedBox(height: 24),
+                
+                // تسجيل الخروج
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _signOut,
+                    icon: const Icon(Icons.logout, color: AppColors.errorRed),
+                    label: Text(
+                      'تسجيل الخروج',
                       style: GoogleFonts.tajawal(
-                        fontSize: 16, 
+                        color: AppColors.errorRed,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.darkOliveGrey,
                       ),
                     ),
-                  ],
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.errorRed, width: 2),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // زر لوحة التحكم - يظهر بس للأدمن
-        if (isAdmin)
-          _buildMenuTile(
-            icon: Icons.admin_panel_settings_rounded,
-            title: 'لوحتي',
-            subtitle: 'إدارة العقارات والمنشورات',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
+                const SizedBox(height: 20),
+              ],
             ),
-          ),
-        
-        _buildMenuTile(
-          icon: Icons.favorite_rounded,
-          title: 'المفضلة',
-          subtitle: 'العقارات التي أعجبتك',
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('قريباً')),
-            );
-          },
-        ),
-        
-        _buildMenuTile(
-          icon: Icons.support_agent_rounded,
-          title: 'الدعم الفني',
-          subtitle: 'تواصل معنا للمساعدة',
-          onTap: () async {
-            final url = 'https://wa.me/9647500000000';
-            if (await canLaunchUrl(Uri.parse(url))) {
-              await launchUrl(Uri.parse(url));
-            }
-          },
-        ),
-        
-        _buildMenuTile(
-          icon: Icons.info_rounded,
-          title: 'عن التطبيق',
-          subtitle: 'أربيل رويال الإصدار 1.0.0',
-          onTap: () {},
-        ),
-        
-        const SizedBox(height: 16),
-        
-        // زر تسجيل الخروج
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: ListTile(
-            leading: const Icon(Icons.logout_rounded, color: AppColors.errorRed),
-            title: Text(
-              'تسجيل الخروج',
-              style: GoogleFonts.tajawal(
-                fontWeight: FontWeight.bold,
-                color: AppColors.errorRed,
-              ),
-            ),
-            onTap: () async {
-              await supabase.auth.signOut();
-              if (mounted) setState(() {});
-            },
-          ),
-        ),
-      ],
     );
   }
 
-  Widget _buildMenuTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withOpacity(0.5)),
-        ),
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.tealGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.tajawal(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.darkMatteGreen,
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.glassWhite.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: AppColors.tealGreen),
+        title: Text(title, style: GoogleFonts.tajawal(fontWeight: FontWeight.w600)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyLight),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildFavoriteCard(PropertyModel property) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.glassWhite.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              property.imageUrl,
+              width: 70,
+              height: 70,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 70,
+                height: 70,
+                color: AppColors.greyLight.withOpacity(0.3),
+                child: const Icon(Icons.home_work, color: AppColors.tealGreen),
+              ),
             ),
-            child: Icon(icon, color: AppColors.tealGreen, size: 24),
           ),
-          title: Text(
-            title,
-            style: GoogleFonts.tajawal(
-              fontWeight: FontWeight.bold,
-              color: AppColors.darkOliveGrey,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  property.title,
+                  style: GoogleFonts.tajawal(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.darkOliveGrey,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '\$${property.price.toStringAsFixed(0)}',
+                  style: GoogleFonts.tajawal(
+                    color: AppColors.tealGreen,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-          subtitle: Text(
-            subtitle,
-            style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13),
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyLight),
-          onTap: onTap,
-        ),
+        ],
       ),
     );
   }
