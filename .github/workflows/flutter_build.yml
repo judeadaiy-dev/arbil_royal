@@ -19,19 +19,15 @@ jobs:
 
       - name: Build & Compile
         run: |
-          flutter clean
+          # 1. إنشاء المشروع
           flutter create . --platforms android
           
-          # إضافة حل جذري لمشكلة app_links
-          echo "subprojects { project.evaluationDependsOn(':app') }" >> android/build.gradle
+          # 2. خطوة الإنقاذ: حذف المكتبة التي تسبب الانهيار من الـ Gradle الخاص بها
+          # هذه الخطوة تمنع الـ Gradle من محاولة قراءة إعدادات مفقودة في app_links
+          rm -rf /home/runner/.pub-cache/hosted/pub.dev/app_links-6.4.1/android/build.gradle
           
-          # بناء التطبيق
+          # 3. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
-          
-          # استخراج الـ SHA-1 لـ Firebase
-          echo "--- YOUR SHA-1 KEY FOR FIREBASE ---"
-          keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androidkey
-          echo "-----------------------------------"
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
