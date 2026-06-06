@@ -1,5 +1,4 @@
 name: Build Flutter APK
-
 on: 
   push:
     branches: [ main ]
@@ -16,30 +15,21 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
 
       - name: Build & Compile
         run: |
-          flutter clean
+          # 1. دع السيرفر ينشئ المجلدات بنفسه
+          flutter pub get
           flutter create .
           
-          # 1. تحديث نسخة Kotlin و Gradle Wrapper
+          # 2. الآن نعدل على ما أنشأه السيرفر فوراً
+          # نرفع إصدار كوتلن إلى 1.9.22 ليتوافق مع مكتباتك الحديثة
           sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          
+          # 3. نحدث الـ Gradle Wrapper ليكون متوافقاً مع هذا الإصدار
           sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           
-          # 2. حقن إعدادات التوافق (AndroidX + Jetifier)
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
-          
-          # 3. الحقن المباشر في build.gradle (تعريف الـ ext flutter + ضبط compileSdkVersion 35)
-          # نقوم بتعديل أي سطر يحتوي على compileSdkVersion إلى 35
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 35/g' android/app/build.gradle
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 35/g' android/app/build.gradle
-          
-          # 4. إضافة إعدادات التوافق في أعلى ملف build.gradle
-          sed -i "1i ext { flutter = [compileSdkVersion: 35, minSdkVersion: 21, targetSdkVersion: 35] }" android/build.gradle
-          
-          # 5. بناء الـ APK
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
