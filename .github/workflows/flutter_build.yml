@@ -1,33 +1,43 @@
 name: Build Flutter APK
-on: [push]
+on: 
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with: 
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
           flutter-version: '3.24.0'
           channel: 'stable'
-      
-      - name: Force Rebuild Android Structure
+          cache: true
+
+      - name: Build & Compile
         run: |
-          # 1. إزالة أي هيكلية أندرويد قديمة تسبب التعارض
-          rm -rf android
+          # 1. تنظيف وإعداد المشروع (هنا نستخدم create مرة واحدة فقط)
+          flutter clean
+          flutter create .
           
-          # 2. إنشاء هيكلية أندرويد جديدة ومتوافقة
-          flutter create . --platforms=android
+          # 2. حقن تعريفات Flutter (حل مشكلة عدم وجود خاصية flutter)
+          # نقوم بإضافة التعريف في بداية ملف build.gradle
+          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
           
-          # 3. جلب التبعيات
-          flutter pub get
-          
-          # 4. الحقن المدرع (بدون هذا سيفشل البناء)
+          # 3. تحديث نسخة Kotlin
           sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          
+          # 4. تحديث Gradle Wrapper (لضمان عمل SDK 34)
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          
+          # 5. تفعيل AndroidX و Jetifier
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 5. البناء النهائي
+          # 6. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
