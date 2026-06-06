@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/app_colors.dart';
 import '../models/property_model.dart';
 import '../services/supabase_service.dart';
 import '../widgets/property_card.dart';
+import '../main.dart';
 import 'property_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
