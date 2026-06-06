@@ -8,34 +8,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
+          cache: true
 
-      - name: Build & Inject Requirements
+      - name: Build & Compile
         run: |
+          # 1. جلب المكتبات
           flutter pub get
           
-          # 1. حقن إصدار الكوتلن (حل مشكلة Incompatible Kotlin)
-          # نبحث عن السطر ونستبدله لضمان توافق المكتبات
-          if [ -f android/build.gradle ]; then
-            sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
-          fi
-          
-          # 2. حقن إعدادات التوافق (App Links تتطلب AndroidX و Jetifier)
-          if [ -f android/gradle.properties ]; then
-            echo "android.useAndroidX=true" >> android/gradle.properties
-            echo "android.enableJetifier=true" >> android/gradle.properties
-          fi
-          
-          # 3. البناء المباشر
+          # 2. بناء الأندرويد (بدون flutter create، دعه يقوم بذلك تلقائياً)
+          # سنقوم بتنفيذ الأمر build مباشرة، فإذا لم يجد مجلد أندرويد، سيقوم هو بإنشائه بشكل صحيح
           flutter build apk --release --no-tree-shake-icons
+          
+          # 3. إذا فشل البناء أعلاه بسبب نسخة الكوتلن، فهذا يعني أننا نحتاج لـ Patching
+          # بما أننا لا نريد تكرار الخطأ، ارفع هذا الكود أولاً، إذا فشل، 
+          # سيعطينا السيرفر رسالة خطأ "حقيقية" وليس خطأ "Unsupported project"
       
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: arbil-royal-apk
