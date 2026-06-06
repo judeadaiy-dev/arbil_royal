@@ -1,35 +1,33 @@
 name: Build Flutter APK
-on: 
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.24.0', channel: 'stable' }
       
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.0'
-          channel: 'stable'
-
       - name: Build & Compile
         run: |
-          # 1. دع السيرفر ينشئ المجلدات بنفسه
           flutter pub get
+          # 1. إنشاء هيكلية الأندرويد لضمان مكان الحقن
           flutter create .
           
-          # 2. الآن نعدل على ما أنشأه السيرفر فوراً
-          # نرفع إصدار كوتلن إلى 1.9.22 ليتوافق مع مكتباتك الحديثة
+          # 2. حقن إعدادات الكوتلن (إجباري)
           sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
           
-          # 3. نحدث الـ Gradle Wrapper ليكون متوافقاً مع هذا الإصدار
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          # 3. حقن متطلبات الـ App Links والـ SDK (إجباري)
+          # هذه الأوامر تضمن أن الـ Manifest والـ Gradle سيقبلون الروابط
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 35/g' android/app/build.gradle
+          sed -i 's/targetSdkVersion .*/targetSdkVersion 35/g' android/app/build.gradle
           
-          # 4. بناء الـ APK
+          # إضافة إعدادات الـ AndroidX والـ Jetifier لضمان عمل المكتبات
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          
+          # 4. البناء النهائي مع تجنب الـ tree-shake-icons لضمان عدم ضياع الأصول
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
