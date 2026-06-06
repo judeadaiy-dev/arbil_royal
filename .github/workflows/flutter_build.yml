@@ -19,30 +19,22 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف وإنشاء المشروع
+          # 1. تنظيف
           flutter clean
+          
+          # 2. إنشاء الهيكلية
           flutter create .
           
-          # 2. إعداد خصائص الـ Gradle (قبل أي شيء)
-          echo "android.useAndroidX=true" >> android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # 3. إنشاء ملف local.properties (هذا هو الحل الجذري)
+          # نكتب المسارات يدوياً لضمان أن مكتبة app_links ستجد تعريفات flutter
+          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
           
-          # 3. تحديث الـ Wrapper
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          # 4. حقن تعريفات الـ ext في ملف android/build.gradle
+          # نستخدم استبدال ذكي بدلاً من الإضافة للسطر الأول
+          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
           
-          # 4. الحقن الجذري: إضافة تعريفات Flutter في بداية build.gradle
-          # نستخدم sed لإضافة التعريف في السطر الأول لضمان رؤيته من قبل جميع المكتبات
-          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
-          
-          # 5. ربط تطبيق الأندرويد بالتعريفات الجديدة
-          sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g" android/app/build.gradle
-          sed -i "s/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g" android/app/build.gradle
-          sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g" android/app/build.gradle
-          
-          # 6. تحديث نسخة Kotlin
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
-          
-          # 7. بناء الـ APK
+          # 5. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
