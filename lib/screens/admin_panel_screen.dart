@@ -26,7 +26,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   String _imageUrl = '';
   bool _isFeatured = false;
   
-  // الإحداثيات - أربيل افتراضياً
   LatLng _selectedLocation = const LatLng(36.1911, 44.0091);
   bool _isLoading = false;
 
@@ -39,7 +38,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     try {
       await supabase.from('properties').insert({
         'title': _title,
-        'location': _location, // هذا نص عادي "شارع 60"
+        'location': _location,
         'price': _price,
         'rooms': _rooms,
         'bathrooms': _bathrooms,
@@ -47,8 +46,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         'type': _type,
         'image_url': _imageUrl,
         'is_featured': _isFeatured,
-        'latitude': _selectedLocation.latitude,   // هذا رقم 36.1911
-        'longitude': _selectedLocation.longitude, // هذا رقم 44.0091
+        'latitude': _selectedLocation.latitude,
+        'longitude': _selectedLocation.longitude,
         'is_active': true,
       });
 
@@ -86,25 +85,23 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           children: [
             TextFormField(
               decoration: const InputDecoration(labelText: 'عنوان العقار'),
-              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _title = val!,
             ),
             const SizedBox(height: 16),
             TextFormField(
               decoration: const InputDecoration(labelText: 'اسم المنطقة - مثلا: شارع 60'),
-              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _location = val!,
             ),
             const SizedBox(height: 16),
             TextFormField(
               decoration: const InputDecoration(labelText: 'السعر'),
               keyboardType: TextInputType.number,
-              validator: (val) => val!.isEmpty ? 'مطلوب' : null,
+              validator: (val) => val!.isEmpty? 'مطلوب' : null,
               onSaved: (val) => _price = double.parse(val!),
             ),
             const SizedBox(height: 24),
-            
-            // خريطة اختيار الموقع
             Text(
               'اضغط على الخريطة لتحديد موقع العقار:',
               style: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.bold),
@@ -157,15 +154,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
-            
-            // باقي الحقول
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
                     decoration: const InputDecoration(labelText: 'غرف'),
                     keyboardType: TextInputType.number,
-                    onSaved: (val) => _rooms = int.parse(val ?? '0'),
+                    onSaved: (val) => _rooms = int.parse(val?? '0'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -173,7 +168,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   child: TextFormField(
                     decoration: const InputDecoration(labelText: 'حمامات'),
                     keyboardType: TextInputType.number,
-                    onSaved: (val) => _bathrooms = int.parse(val ?? '0'),
+                    onSaved: (val) => _bathrooms = int.parse(val?? '0'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -181,7 +176,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                   child: TextFormField(
                     decoration: const InputDecoration(labelText: 'المساحة م²'),
                     keyboardType: TextInputType.number,
-                    onSaved: (val) => _area = double.parse(val ?? '0'),
+                    onSaved: (val) => _area = double.parse(val?? '0'),
                   ),
                 ),
               ],
@@ -210,9 +205,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _isLoading ? null : _saveProperty,
+              onPressed: _isLoading? null : _saveProperty,
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                ? const CircularProgressIndicator(color: Colors.white)
                   : const Text('حفظ العقار'),
             ),
           ],
