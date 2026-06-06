@@ -19,31 +19,23 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تهيئة المشروع
           flutter clean
-          flutter pub get
-          flutter create . --platforms=android
+          # إنشاء المشروع لضمان وجود الهيكلية المطلوبة
+          flutter create .
           
-          # 2. إنشاء local.properties (حل جذري لتعريف مسار SDK للمكتبات)
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
+          # 1. تحديث نسخة Gradle لضمان استقرار البناء
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
           
-          # 3. حقن الـ ext في بداية ملف build.gradle (ليراه Gradle قبل أي مكتبة)
-          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
+          # 2. حقن الـ ext الأساسي الذي تحتاجه كل المكتبات (الحل التقني الجذري)
+          # نضعه في أعلى ملف android/build.gradle ليتم اعتماده كمرجع ثابت
+          sed -i "1i buildscript { ext { kotlin_version = '1.9.22'; flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
           
-          # 4. تحديث نسخة Kotlin
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
-          
-          # 5. تعويض القيم في ملف التطبيق مباشرة
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
-          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
-          
-          # 6. إعدادات توافق AndroidX
+          # 3. توحيد إعدادات الأندرويد في gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m" >> android/gradle.properties
           
-          # 7. البناء
+          # 4. بناء الـ APK (التطبيق سيستخدم الأيقونات الموجودة في مجلد المشروع تلقائياً)
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
