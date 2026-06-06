@@ -13,6 +13,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          # نستخدم إصدار أحدث لتجاوز خطأ الإصدار الأول
           flutter-version: '3.24.0'
           channel: 'stable'
           cache: true
@@ -21,17 +22,13 @@ jobs:
         run: |
           flutter clean
           
-          # 1. إنشاء المشروع مع دعم AndroidX
-          flutter create . --platforms android --androidx
+          # إنشاء المشروع بدون تعقيدات (الأمر `--androidx` لم يعد موجوداً)
+          flutter create . --platforms android
           
-          # 2. تحديث ملف الخصائص لإجبار الـ AndroidX والـ Jetifier
-          echo "android.useAndroidX=true" > android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # تحديث المكتبات
+          flutter pub get
           
-          # 3. تحديث المكتبات بالكامل
-          flutter pub upgrade
-          
-          # 4. بناء الـ APK
+          # البناء
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
