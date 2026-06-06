@@ -19,18 +19,26 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. إنشاء المشروع
+          # 1. تنظيف عميق
+          flutter clean
+          
+          # 2. تحديث الحزم وإجبارها على استخدام أحدث إصدار من app_links
+          # هذا السطر يقرأ pubspec.yaml ويحدث المكتبات لأقصى حد مسموح به
+          flutter pub upgrade --major-versions
+          
+          # 3. إنشاء المشروع (بما أنك تعمل من الهاتف، نحتاج هذه الخطوة)
           flutter create .
           
-          # 2. الحل السحري: ربط المكتبة المتمردة بالمشروع الرئيسي
-          # هذا السطر يجبر Gradle على انتظار انتهاء بناء المشروع الرئيسي قبل محاولة بناء المكتبة
-          echo "includeBuild('.')" >> android/settings.gradle
+          # 4. إجبار المكتبة على التوافق مع بنية الـ Gradle الحديثة
+          # سنقوم بحقن إعدادات التوافق مباشرة في ملف البناء
+          echo "android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+          }" >> android/app/build.gradle
           
-          # 3. إجبار الـ Gradle على استخدام AndroidX
-          echo "android.useAndroidX=true" > android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
-          
-          # 4. بناء الـ APK
+          # 5. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
