@@ -19,15 +19,14 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف الـ Cache
-          rm -rf /home/runner/.pub-cache/hosted/pub.dev/app_links*
+          # 1. تنظيف عميق جداً
           flutter clean
           
-          # 2. إنشاء المشروع
-          flutter create .
+          # 2. حذف المكتبة المتمردة نهائياً من كل مكان في السيرفر
+          find /home/runner/.pub-cache -name "*app_links*" -exec rm -rf {} +
           
-          # 3. إجبار المكتبات على التوافق (هذا الحل يمنع تعارض أي مكتبة تطلب app_links)
-          echo "configurations.all { resolutionStrategy { force 'io.flutter:flutter_embedding_debug:1.0.0-f844dc9213' } }" >> android/app/build.gradle
+          # 3. إنشاء المشروع
+          flutter create .
           
           # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
