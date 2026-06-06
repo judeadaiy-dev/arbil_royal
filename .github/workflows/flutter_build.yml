@@ -1,35 +1,34 @@
 name: Build Flutter APK
-
-on: 
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: 
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
-
-      - name: Build & Compile
+      
+      - name: Force Rebuild Android Structure
         run: |
-          # 1. جلب المكتبات
+          # 1. إزالة أي هيكلية أندرويد قديمة تسبب التعارض
+          rm -rf android
+          
+          # 2. إنشاء هيكلية أندرويد جديدة ومتوافقة
+          flutter create . --platforms=android
+          
+          # 3. جلب التبعيات
           flutter pub get
           
-          # 2. بناء الأندرويد (بدون flutter create، دعه يقوم بذلك تلقائياً)
-          # سنقوم بتنفيذ الأمر build مباشرة، فإذا لم يجد مجلد أندرويد، سيقوم هو بإنشائه بشكل صحيح
-          flutter build apk --release --no-tree-shake-icons
+          # 4. الحقن المدرع (بدون هذا سيفشل البناء)
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 3. إذا فشل البناء أعلاه بسبب نسخة الكوتلن، فهذا يعني أننا نحتاج لـ Patching
-          # بما أننا لا نريد تكرار الخطأ، ارفع هذا الكود أولاً، إذا فشل، 
-          # سيعطينا السيرفر رسالة خطأ "حقيقية" وليس خطأ "Unsupported project"
+          # 5. البناء النهائي
+          flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
