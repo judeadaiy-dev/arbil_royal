@@ -1,252 +1,256 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/app_colors.dart';
-import '../main.dart';
 import '../models/property_model.dart';
-import 'auth_screen.dart';
 
-class PropertyDetailsScreen extends StatefulWidget {
+class PropertyDetailsScreen extends StatelessWidget {
   final PropertyModel property;
-  const PropertyDetailsScreen({super.key, required this.property});
 
-  @override
-  State<PropertyDetailsScreen> createState() => _PropertyDetailsScreenState();
-}
+  const PropertyDetailsScreen({
+    super.key,
+    required this.property,
+  });
 
-class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
-  
-  Future<void> _contactWhatsApp() async {
-    // إذا ما مسجل دخول، طلعله Dialog التسجيل
-    if (supabase.auth.currentUser == null) {
-      final loggedIn = await AuthDialog.show(context);
-      if (!loggedIn ||!mounted) return;
-    }
+  Future<void> _openDirections() async {
+    if (property.lat == null || property.lng == null) return;
     
-    // بعد التسجيل أو إذا مسجل أصلاً، كمل للواتساب
-    final message = 'مرحباً، مهتم بالعقار: ${widget.property.title} في ${widget.property.location}';
-    final url = 'https://wa.me/${widget.property.whatsapp}?text=${Uri.encodeComponent(message)}';
-    
+    final url = 'https://www.google.com/maps/search/?api=1&query=${property.lat},${property.lng}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لا يمكن فتح واتساب')),
-        );
-      }
     }
   }
 
-  Future<void> _openMap() async {
-    if (widget.property.lat == null || widget.property.lng == null) return;
-    
-    final url = 'https://www.google.com/maps/search/?api=1&query=${widget.property.lat},${widget.property.lng}';
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  Future<void> _callAgent() async {
+    const phoneNumber = 'tel:+9647500000000';
+    if (await canLaunchUrl(Uri.parse(phoneNumber))) {
+      await launchUrl(Uri.parse(phoneNumber));
+    }
+  }
+
+  Future<void> _whatsappAgent() async {
+    const whatsappUrl = 'https://wa.me/9647500000000';
+    if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+      await launchUrl(Uri.parse(whatsappUrl), mode: LaunchMode.externalApplication);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final p = widget.property;
-    final hasLocation = p.lat!= null && p.lng!= null;
-    
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.skyBlueTop, AppColors.whiteBottom],
-          ),
-        ),
-        child: CustomScrollView(
-          slivers: [
-            // صورة + زر رجوع
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              backgroundColor: Colors.transparent,
-              leading: Padding(
-                padding: const EdgeInsets.all(8),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.9),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppColors.darkOliveGrey),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                background: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                  child: Image.network(
-                    p.imageUrl,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CachedNetworkImage(
+                    imageUrl: property.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: AppColors.greyLight,
-                      child: const Icon(Icons.home_work, size: 80),
+                    placeholder: (context, url) => Container(
+                      color: AppColors.greyLight.withOpacity(0.3),
+                      child: const Center(
+                        child: CircularProgressIndicator(color: AppColors.tealGreen),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: AppColors.greyLight.withOpacity(0.3),
+                      child: const Icon(Icons.home_work, size: 80, color: AppColors.tealGreen),
                     ),
                   ),
-                ),
-              ),
-            ),
-            
-            // التفاصيل
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // السعر + الموقع
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '\$${p.price}',
-                                style: GoogleFonts.tajawal(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.tealGreen,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on, size: 18, color: AppColors.greyLight),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      p.location,
-                                      style: GoogleFonts.tajawal(fontSize: 16, color: Colors.grey[700]),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (p.isFeatured)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.tealGreen,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'مميز',
-                              style: GoogleFonts.tajawal(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // العنوان
-                    Text(
-                      p.title,
-                      style: GoogleFonts.tajawal(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkOliveGrey,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // المواصفات
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white.withOpacity(0.5)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildSpec(Icons.bed, '${p.rooms}', 'غرف'),
-                          _buildSpec(Icons.bathtub_outlined, '${p.bathrooms}', 'حمام'),
-                          _buildSpec(Icons.square_foot, '${p.area}', 'م²'),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // أزرار الإجراء
-                    Row(
-                      children: [
-                        if (hasLocation)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _openMap,
-                              icon: const Icon(Icons.map),
-                              label: Text('الخريطة', style: GoogleFonts.tajawal()),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.tealGreen,
-                                side: const BorderSide(color: AppColors.tealGreen, width: 2),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                              ),
-                            ),
+                  ),
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.tealGreen,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.tealGreen.withOpacity(0.5),
+                            blurRadius: 15,
+                            spreadRadius: 2,
                           ),
-                        if (hasLocation) const SizedBox(width: 12),
-                        Expanded(
-                          flex: hasLocation? 1 : 2,
-                          child: ElevatedButton.icon(
-                            onPressed: _contactWhatsApp,
-                            icon: const Icon(Icons.phone_android),
-                            label: Text('واتساب', style: GoogleFonts.tajawal(fontSize: 16)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.tealGreen,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            ),
-                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '\$${property.price.toStringAsFixed(0)}',
+                        style: GoogleFonts.tajawal(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    property.title,
+                    style: GoogleFonts.tajawal(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkOliveGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 20, color: AppColors.greyLight),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          property.location,
+                          style: GoogleFonts.tajawal(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.glassWhite.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.glassBorder, width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildSpecItem(Icons.bed_rounded, '${property.rooms}', 'غرف'),
+                        _buildDivider(),
+                        _buildSpecItem(Icons.bathtub_rounded, '${property.bathrooms}', 'حمامات'),
+                        _buildDivider(),
+                        _buildSpecItem(Icons.square_foot_rounded, '${property.area.toStringAsFixed(0)}', 'م²'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'الوصف',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkOliveGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'عقار مميز في موقع استراتيجي بمدينة أربيل. يتميز بتصميم عصري وتشطيبات عالية الجودة. قريب من جميع الخدمات والمرافق الأساسية.',
+                    style: GoogleFonts.tajawal(
+                      fontSize: 15,
+                      color: Colors.grey[700],
+                      height: 1.6,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  if (property.lat!= null && property.lng!= null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _openDirections,
+                        icon: const Icon(Icons.directions),
+                        label: const Text('الاتجاهات على الخريطة'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: AppColors.tealGreen, width: 2),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _callAgent,
+                          icon: const Icon(Icons.phone),
+                          label: const Text('اتصال'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _whatsappAgent,
+                          icon: const Icon(Icons.message),
+                          label: const Text('واتساب'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF25D366),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSpec(IconData icon, String value, String label) {
+  Widget _buildSpecItem(IconData icon, String value, String label) {
     return Column(
       children: [
-        Icon(icon, color: AppColors.tealGreen, size: 32),
+        Icon(icon, size: 28, color: AppColors.tealGreen),
         const SizedBox(height: 8),
         Text(
           value,
           style: GoogleFonts.tajawal(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: AppColors.darkOliveGrey,
           ),
         ),
         Text(
           label,
-          style: GoogleFonts.tajawal(color: Colors.grey[600], fontSize: 13),
+          style: GoogleFonts.tajawal(
+            fontSize: 13,
+            color: Colors.grey[600],
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      height: 40,
+      width: 1,
+      color: AppColors.glassBorder,
     );
   }
 }
