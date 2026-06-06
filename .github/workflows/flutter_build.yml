@@ -19,22 +19,26 @@ jobs:
 
       - name: Build & Compile
         run: |
-          # 1. تنظيف
           flutter clean
+          flutter pub get
+          # إنشاء المشروع بدون تكرار إذا كان موجوداً
+          if [ ! -d "android" ]; then flutter create .; fi
           
-          # 2. إنشاء الهيكلية
-          flutter create .
+          # 1. تحديث نسخة Kotlin في ملف الإعدادات الرئيسي ليكون متوافقاً مع كل المكتبات
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
           
-          # 3. إنشاء ملف local.properties (هذا هو الحل الجذري)
-          # نكتب المسارات يدوياً لضمان أن مكتبة app_links ستجد تعريفات flutter
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
+          # 2. التأكد من استخدام AndroidX
+          echo "android.useAndroidX=true" > android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 4. حقن تعريفات الـ ext في ملف android/build.gradle
-          # نستخدم استبدال ذكي بدلاً من الإضافة للسطر الأول
-          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
-          
-          # 5. بناء الـ APK
+          # 3. الحقن الجذري لتعريفات SDK المطلوبة لتجاوز أخطاء المكتبات
+          # نقوم بإضافة التعريفات في ملف gradle.properties الذي يراه Gradle دائماً
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" >> android/gradle.properties
+          echo "flutter.compileSdkVersion=34" >> android/gradle.properties
+          echo "flutter.minSdkVersion=21" >> android/gradle.properties
+          echo "flutter.targetSdkVersion=34" >> android/gradle.properties
+
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
