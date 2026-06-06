@@ -1,4 +1,5 @@
 name: Build Flutter APK
+
 on: 
   push:
     branches: [ main ]
@@ -15,27 +16,20 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
 
       - name: Build & Compile
         run: |
           flutter clean
           flutter pub get
           
-          # 1. تحديث نسخة Kotlin و Gradle Wrapper
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
-          
-          # 2. حقن إعدادات الأندرويد (تعديل compileSdk إلى 35 كما طلبت السجلات)
-          # نستخدم sed للبحث عن السطر وتعديله داخل android/app/build.gradle
-          sed -i 's/compileSdk = .*/compileSdk = 35/g' android/app/build.gradle
-          sed -i 's/targetSdk = .*/targetSdk = 35/g' android/app/build.gradle
-          
-          # 3. إعدادات توافق المكتبات
+          # تحديث إعدادات الأندرويد في ملف الـ gradle.properties لضمان التوافق
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           
-          # 4. بناء الـ APK
+          # استخدام إصدار 35 للـ compileSdk ليتوافق مع المكتبات الحديثة
+          # نقوم بتعديل الملف مباشرة عبر السطر التالي:
+          sed -i 's/compileSdk = .*/compileSdk = 35/g' android/app/build.gradle || echo "compileSdk already set"
+          
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
