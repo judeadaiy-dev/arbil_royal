@@ -15,28 +15,22 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
 
       - name: Build & Compile
         run: |
-          flutter clean
-          flutter create .
+          # 1. إنشاء المشروع الأساسي
+          flutter create . --platforms=android
           
-          # 1. تحديث نسخة Kotlin و Gradle Wrapper (التوافق الحديث)
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
-          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          # 2. حقن التصاريح (الإنترنت والشبكة) مباشرة في ملف الـ Manifest
+          # نستخدم sed للبحث عن وسم <manifest> وإضافة التصاريح بعده
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
           
-          # 2. حقن إعدادات التوافق (لإنهاء مشاكل app_links ومكتبات التبعية)
-          echo "android.useAndroidX=true" >> android/gradle.properties
+          # 3. تثبيت إعدادات التوافق (Jetifier) لتجاوز أخطاء المكتبات
+          echo "android.useAndroidX=true" > android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "flutter.compileSdkVersion=34" >> android/gradle.properties
           
-          # 3. الحقن المباشر في build.gradle (لضمان تعريف الـ ext flutter الذي تطلبه المكتبات)
-          # نستخدم sed لإضافة الـ ext قبل أي شيء آخر في الملف
-          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
-          
-          # 4. بناء الـ APK
-          flutter build apk --release --no-tree-shake-icons
+          # 4. بناء الـ APK بفرض الخيار --no-shrink لتقليل تعقيدات البناء
+          flutter build apk --release --no-tree-shake-icons --no-shrink
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
