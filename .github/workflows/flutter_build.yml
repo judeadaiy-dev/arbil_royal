@@ -23,16 +23,17 @@ jobs:
           flutter pub get
           flutter create .
           
-          # 1. إجبار تعريفات Flutter في ملف android/build.gradle ليراها Gradle فوراً
-          # هذا السطر يحل مشكلة Could not get unknown property 'flutter'
-          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
+          # 1. تعريف المتغيرات التي تبحث عنها المكتبات في ملف Gradle الرئيسي
+          # نقوم بحقنها في السطر الأول لضمان وجودها لأي مكتبة (مثل app_links)
+          sed -i "1i buildscript { ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34]; } }" android/build.gradle
           
-          # 2. ضبط إعدادات التوافق الحديثة
+          # 2. ضبط توافق الإصدارات والـ SDK
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+          
+          # 3. تفعيل الـ AndroidX والـ Jetifier لضمان توافق جميع المكتبات
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          
-          # 3. تحديث نسخة Kotlin لتكون متوافقة مع كل المكتبات الحديثة
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          echo "org.gradle.jvmargs=-Xmx2048m" >> android/gradle.properties
           
           # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
