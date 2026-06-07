@@ -2,46 +2,43 @@ name: Build Flutter APK
 on: 
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-          cache: true
-      
-      - name: Get dependencies
-        run: flutter pub get
-      
-      - name: Setup Android project
+
+      - name: Build & Compile
         run: |
-          # ننشئ المجلد فقط إذا لم يكن موجوداً
-          if [ ! -d "android" ]; then
-            flutter create . --platforms=android --project-name=arbil_royal
-          fi
+          flutter pub get
+          
+          # 1. إنشاء المشروع الأساسي
+          flutter create . --platforms=android
+          
+          # 2. إنشاء ملف properties لإجبار Gradle على استخدام إعدادات متوافقة
+          echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8" > android/gradle.properties
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          
+          # 3. إجبار إصدار الـ compileSdkVersion في ملف التطبيق مباشرة
+          # هذا السطر يبحث عن السطر المسؤول ويستبدله برقم ثابت 34
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
+          
+          # 4. بناء الـ APK بأمر مباشر يتجاوز تعقيدات الـ Gradle المعتادة
+          flutter build apk --release --split-per-abi --no-tree-shake-icons
       
-      - name: Build Flutter APK
-        run: |
-          # البناء مباشرة وتخطي فحص الأيقونات لتفادي أخطاء الـ Resource
-          flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons -v
-      
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: arbil-royal-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/
