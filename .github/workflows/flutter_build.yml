@@ -15,30 +15,25 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
+          cache: true
 
       - name: Build & Compile
         run: |
-          flutter pub get
+          flutter clean
+          flutter create .
           
-          # 1. إنشاء مجلد مؤقت وتوليد الأندرويد فيه فقط (بدون التأثير على ملفات مشروعك)
-          mkdir temp_android
-          cd temp_android
-          flutter create . --platforms=android
-          cd ..
+          # 1. تحديث نسخة Kotlin و Gradle Wrapper (التوافق الحديث)
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          sed -i 's/gradle-.*-all.zip/gradle-8.5-all.zip/g' android/gradle/wrapper/gradle-wrapper.properties
           
-          # 2. نقل ملفات الـ Gradle الضرورية فقط إلى مشروعك (إذا لم تكن موجودة)
-          cp -n temp_android/android/build.gradle android/build.gradle || true
-          cp -n temp_android/android/app/build.gradle android/app/build.gradle || true
+          # 2. حقن إعدادات التوافق (لإنهاء مشاكل app_links ومكتبات التبعية)
+          echo "android.useAndroidX=true" >> android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          echo "flutter.compileSdkVersion=34" >> android/gradle.properties
           
-          # 3. الحقن الصارم: الآن نحقن الإعدادات في الملفات الموجودة
-          # تعريف الـ flutter ext في الملف الرئيسي
-          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
-          
-          # تعريف الـ compileSdkVersion في ملف التطبيق
-          sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
-          
-          # ضبط الـ Gradle
-          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+          # 3. الحقن المباشر في build.gradle (لضمان تعريف الـ ext flutter الذي تطلبه المكتبات)
+          # نستخدم sed لإضافة الـ ext قبل أي شيء آخر في الملف
+          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
           
           # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
