@@ -1,34 +1,47 @@
-name: arbil_royal
-description: "A new Flutter project."
+name: seachat
+description: SeaChat Real Estate App - تطبيق عقارات أربيل
 publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  supabase_flutter: ^2.6.0
-  google_fonts: ^6.2.1
-  cached_network_image: ^3.4.0
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
-  connectivity_plus: ^6.0.5
-  url_launcher: ^6.3.0
   flutter_localizations:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  image_picker: ^1.1.2
 
- 
+  # الباك اند والشبكة
+  supabase_flutter: ^2.8.0
+  connectivity_plus: ^6.0.5
+  url_launcher: ^6.3.1
+  
+  # الواجهة والتصميم
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+  flutter_svg: ^2.0.10+1
+  
+  # الخرائط والموقع
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  
+  # الوسائط
+  image_picker: ^1.1.2
+  
+  # أدوات مساعدة
+  intl: ^0.19.0
+  shared_preferences: ^2.3.2
+  cupertino_icons: ^1.0.8
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  build_runner: ^2.4.9  # نعم، مكانها الصحيح هنا في dev_dependencies
 
 flutter:
   uses-material-design: true
+  
   assets:
     - assets/images/
+    - assets/icons/
