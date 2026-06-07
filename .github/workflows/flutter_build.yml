@@ -1,30 +1,45 @@
 name: Build Flutter APK
-on: [push]
+on: 
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
 
       - name: Build & Compile
         run: |
-          flutter clean
+          # 1. جلب المكتبات فقط
           flutter pub get
-          flutter create .
           
-          # 1. تحديث نسخة Kotlin في ملف البناء الرئيسي لإصلاح التضارب
-          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          # 2. إنشاء مجلد الأندرويد فقط إذا لم يكن موجوداً (بدون تدمير الإعدادات)
+          [ ! -d "android" ] && flutter create . --platforms=android
           
-          # 2. حقن تعريفات الـ flutter التي تطلبها المكتبات
-          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
+          # 3. الحقن القوي (Force Update) لكل الإعدادات لضمان التوافق
+          # تعديل ملف build.gradle الرئيسي ليكون متوافقاً مع كل المكاتب
+          sed -i "s/ext.kotlin_version = .*/ext.kotlin_version = '1.9.22'/g" android/build.gradle
           
-          # 3. التأكد من استخدام Gradle 8.5
+          # تحديث نسخة الـ Gradle لضمان عمل البناء
           sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
           
-          # 4. البناء
+          # 4. إعدادات توافق قوية (تمنع خطأ app_links)
+          echo "android.useAndroidX=true" > android/gradle.properties
+          echo "android.enableJetifier=true" >> android/gradle.properties
+          
+          # 5. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: arbil-royal-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
