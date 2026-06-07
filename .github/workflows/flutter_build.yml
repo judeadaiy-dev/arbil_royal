@@ -20,28 +20,22 @@ jobs:
         run: |
           flutter pub get
           
-          # 1. إنشاء المجلد تلقائياً إذا لم يكن موجوداً
+          # 1. إنشاء المشروع في مجلد مؤقت فقط إذا لم نكن قد أنشأناه من قبل
           if [ ! -d "android" ]; then
+            mkdir -p temp_android
+            cd temp_android
             flutter create . --platforms=android
+            cd ..
+            mv temp_android/android .
+            rm -rf temp_android
           fi
           
-          # 2. حقن الإعدادات الصارمة لضمان التوافقية
-          # تحديث نسخة Kotlin في settings.gradle
-          if [ -f "android/settings.gradle" ]; then
-             sed -i 's|org.jetbrains.kotlin.android version.*|org.jetbrains.kotlin.android version "1.9.0" apply false|g' android/settings.gradle
-          fi
-
-          # إعداد الـ compileSdkVersion لإنهاء خطأ app_links
-          if [ -f "android/app/build.gradle" ]; then
-             grep -q "compileSdkVersion 34" android/app/build.gradle || sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
-          fi
+          # 2. حقن الإعدادات الضرورية داخل ملفات المشروع (تعديل مباشر)
+          # إضافة الـ compileSdkVersion لملف التطبيق لإنهاء خطأ app_links
+          sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
           
-          # ضبط Gradle Wrapper
-          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
-          
-          # إعداد الخصائص
-          echo "android.useAndroidX=true" > android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # ضبط ملف build.gradle الرئيسي ليتعرف على إعدادات flutter
+          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
           
           # 3. البناء
           flutter build apk --release --no-tree-shake-icons
