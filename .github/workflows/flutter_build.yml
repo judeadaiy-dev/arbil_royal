@@ -20,44 +20,14 @@ jobs:
         run: |
           flutter pub get
           
-          # 1. إنشاء المجلد
+          # 1. إنشاء المشروع
           flutter create . --platforms=android
           
-          # 2. "الحل الجذري": كتابة ملف build.gradle من الصفر
-          # هذا الملف يحتوي على الـ ext الذي تبحث عنه المكتبات (مثل app_links)
-          cat <<EOF > android/build.gradle
-          buildscript {
-              ext.kotlin_version = '1.9.0'
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.0'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version"
-              }
-          }
-
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-
-          ext {
-              flutter = [
-                  compileSdkVersion: 34,
-                  minSdkVersion: 21,
-                  targetSdkVersion: 34
-              ]
-          }
-          EOF
+          # 2. الحقن المباشر في السطر الأول لملف build.gradle
+          # هذا يضمن وجود الـ ext قبل أي شيء آخر
+          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
           
-          # 3. التأكد من أن ملف التطبيق يستخدم الإعدادات الصحيحة
-          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
-          
-          # 4. البناء
+          # 3. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
