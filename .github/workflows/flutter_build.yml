@@ -36,32 +36,36 @@ jobs:
             flutter create --platforms=android --project-name seachat .
           fi
           
-      - name: Get dependencies
-        run: flutter pub get
-        
       - name: Auto-Fix Android Build Issues
         run: |
-          # 1. تعديل build.gradle تلقائياً
-          sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' android/app/build.gradle
-          sed -i 's/targetSdkVersion.*/targetSdkVersion 34/' android/app/build.gradle
-          sed -i 's/minSdkVersion.*/minSdkVersion 21/' android/app/build.gradle
+          # 1. تنظيف القيم القديمة التي قد تسبب تعارضاً
+          sed -i '/compileSdkVersion/d' android/app/build.gradle
+          sed -i '/minSdkVersion/d' android/app/build.gradle
+          sed -i '/targetSdkVersion/d' android/app/build.gradle
+
+          # 2. حقن القيم مباشرة داخل defaultConfig لضمان تعرف Gradle عليها
+          # نبحث عن السطر الخاص بـ defaultConfig ونضيف القيم بعده
+          sed -i '/defaultConfig {/a \
+              applicationId "com.example.seachat"\
+              minSdkVersion 21\
+              targetSdkVersion 34\
+              compileSdkVersion 34' android/app/build.gradle
+
+          # 3. إزالة التعارض مع متغيرات flutter إذا كانت موجودة
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
           
-          # 2. الغاء minify عشان ما يطيح البناء
-          sed -i 's/minifyEnabled true/minifyEnabled false/' android/app/build.gradle
-          sed -i 's/shrinkResources true/shrinkResources false/' android/app/build.gradle
+          # 4. الغاء minify لضمان عدم فشل البناء
+          sed -i 's/minifyEnabled true/minifyEnabled false/g' android/app/build.gradle
+          sed -i 's/shrinkResources true/shrinkResources false/g' android/app/build.gradle
           
-          # 3. حقن تصريح الانترنت
+          # 5. حقن تصريح الانترنت
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
             sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
           fi
           
-          # 4. حل مشكلة App Links
-          if ! grep -q "android:autoVerify" "$MANIFEST"; then
-            sed -i 's/<intent-filter>/<intent-filter android:autoVerify="false">/' "$MANIFEST"
-          fi
-          
-          echo "All Android fixes applied"
+          echo "All Android fixes applied correctly"
+
           
       - name: Build APK
         run: flutter build apk --release --no-shrink --no-tree-shake-icons
