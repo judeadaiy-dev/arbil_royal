@@ -20,26 +20,27 @@ jobs:
         run: |
           flutter pub get
           
-          # 1. الإنشاء الذكي: لا تنشئ إلا إذا كان المجلد غير موجود (مرة واحدة فقط)
-          if [ ! -d "android" ]; then
-            flutter create . --platforms=android
-            
-            # 2. الحقن لمرة واحدة (يتم تنفيذه فقط عند إنشاء المجلد لأول مرة)
-            # الحقن في ملف البناء الرئيسي
-            sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
-            
-            # الحقن في ملف بناء التطبيق
-            sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
-            
-            # ضبط Gradle Wrapper
-            sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
-            
-            # ضبط الإعدادات
-            echo "android.useAndroidX=true" > android/gradle.properties
-            echo "android.enableJetifier=true" >> android/gradle.properties
-          fi
+          # 1. إنشاء مجلد مؤقت وتوليد الأندرويد فيه فقط (بدون التأثير على ملفات مشروعك)
+          mkdir temp_android
+          cd temp_android
+          flutter create . --platforms=android
+          cd ..
           
-          # 3. البناء النهائي (الآن الإعدادات ثابتة ومحقونة)
+          # 2. نقل ملفات الـ Gradle الضرورية فقط إلى مشروعك (إذا لم تكن موجودة)
+          cp -n temp_android/android/build.gradle android/build.gradle || true
+          cp -n temp_android/android/app/build.gradle android/app/build.gradle || true
+          
+          # 3. الحقن الصارم: الآن نحقن الإعدادات في الملفات الموجودة
+          # تعريف الـ flutter ext في الملف الرئيسي
+          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
+          
+          # تعريف الـ compileSdkVersion في ملف التطبيق
+          sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
+          
+          # ضبط الـ Gradle
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+          
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
