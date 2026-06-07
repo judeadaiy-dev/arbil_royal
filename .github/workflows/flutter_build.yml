@@ -1,39 +1,74 @@
-name: Build Flutter APK
-on: 
+name: Build SeaChat APK
+
+on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.24.3'
           channel: 'stable'
-
-      - name: Build & Compile
+          cache: true
+          
+      - name: Disable Analytics
+        run: flutter config --no-analytics
+        
+      - name: Create Flutter Project Structure
         run: |
-          # 1. إنشاء المشروع الأساسي
-          flutter create . --platforms=android
+          # اذا مجلد android ناقص، flutter create يصلحه
+          if [ ! -f "android/app/build.gradle" ]; then
+            flutter create --platforms=android --project-name seachat .
+          fi
           
-          # 2. حقن التصاريح (الإنترنت والشبكة) مباشرة في ملف الـ Manifest
-          # نستخدم sed للبحث عن وسم <manifest> وإضافة التصاريح بعده
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' android/app/src/main/AndroidManifest.xml
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Auto-Fix Android Build Issues
+        run: |
+          # 1. تعديل build.gradle تلقائياً
+          sed -i 's/compileSdkVersion.*/compileSdkVersion 34/' android/app/build.gradle
+          sed -i 's/targetSdkVersion.*/targetSdkVersion 34/' android/app/build.gradle
+          sed -i 's/minSdkVersion.*/minSdkVersion 21/' android/app/build.gradle
           
-          # 3. تثبيت إعدادات التوافق (Jetifier) لتجاوز أخطاء المكتبات
-          echo "android.useAndroidX=true" > android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
+          # 2. الغاء minify عشان ما يطيح البناء
+          sed -i 's/minifyEnabled true/minifyEnabled false/' android/app/build.gradle
+          sed -i 's/shrinkResources true/shrinkResources false/' android/app/build.gradle
           
-          # 4. بناء الـ APK بفرض الخيار --no-shrink لتقليل تعقيدات البناء
-          flutter build apk --release --no-tree-shake-icons --no-shrink
-      
+          # 3. حقن تصريح الانترنت
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
+            sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />' "$MANIFEST"
+          fi
+          
+          # 4. حل مشكلة App Links
+          if ! grep -q "android:autoVerify" "$MANIFEST"; then
+            sed -i 's/<intent-filter>/<intent-filter android:autoVerify="false">/' "$MANIFEST"
+          fi
+          
+          echo "All Android fixes applied"
+          
+      - name: Build APK
+        run: flutter build apk --release --no-shrink --no-tree-shake-icons
+        
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: arbil-royal-apk
+          name: SeaChat-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
