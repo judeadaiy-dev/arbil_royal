@@ -20,22 +20,44 @@ jobs:
         run: |
           flutter pub get
           
-          # 1. إنشاء المشروع (إذا لم يكن موجوداً)
-          if [ ! -d "android" ]; then
-            flutter create . --platforms=android
-          fi
+          # 1. إنشاء المجلد
+          flutter create . --platforms=android
           
-          # 2. "التصحيح الجراحي" لملفات Gradle
-          # تحديث نسخة Kotlin في ملف settings.gradle ليتوافق مع المكتبات الجديدة
-          sed -i 's/id "org.jetbrains.kotlin.android" version ".*"/id "org.jetbrains.kotlin.android" version "1.9.0" apply false/g' android/settings.gradle
+          # 2. "الحل الجذري": كتابة ملف build.gradle من الصفر
+          # هذا الملف يحتوي على الـ ext الذي تبحث عنه المكتبات (مثل app_links)
+          cat <<EOF > android/build.gradle
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version"
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          ext {
+              flutter = [
+                  compileSdkVersion: 34,
+                  minSdkVersion: 21,
+                  targetSdkVersion: 34
+              ]
+          }
+          EOF
           
-          # تحديث نسخة Kotlin في ملف build.gradle الرئيسي
-          sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.9.0"/g' android/build.gradle
+          # 3. التأكد من أن ملف التطبيق يستخدم الإعدادات الصحيحة
+          sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
           
-          # إجبار compileSdkVersion على 34 في ملف التطبيق
-          sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
-          
-          # 3. البناء
+          # 4. البناء
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
