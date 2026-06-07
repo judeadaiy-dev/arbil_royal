@@ -20,22 +20,21 @@ jobs:
       - name: Build & Compile
         run: |
           flutter clean
-          # إنشاء المشروع لضمان وجود الهيكلية المطلوبة
+          flutter pub get
           flutter create .
           
-          # 1. تحديث نسخة Gradle لضمان استقرار البناء
-          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+          # 1. إجبار تعريفات Flutter في ملف android/build.gradle ليراها Gradle فوراً
+          # هذا السطر يحل مشكلة Could not get unknown property 'flutter'
+          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
           
-          # 2. حقن الـ ext الأساسي الذي تحتاجه كل المكتبات (الحل التقني الجذري)
-          # نضعه في أعلى ملف android/build.gradle ليتم اعتماده كمرجع ثابت
-          sed -i "1i buildscript { ext { kotlin_version = '1.9.22'; flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
-          
-          # 3. توحيد إعدادات الأندرويد في gradle.properties
+          # 2. ضبط إعدادات التوافق الحديثة
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m" >> android/gradle.properties
           
-          # 4. بناء الـ APK (التطبيق سيستخدم الأيقونات الموجودة في مجلد المشروع تلقائياً)
+          # 3. تحديث نسخة Kotlin لتكون متوافقة مع كل المكتبات الحديثة
+          sed -i "s/ext.kotlin_version = '.*'/ext.kotlin_version = '1.9.22'/g" android/build.gradle
+          
+          # 4. بناء الـ APK
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
