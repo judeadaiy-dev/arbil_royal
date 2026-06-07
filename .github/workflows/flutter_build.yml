@@ -20,24 +20,46 @@ jobs:
         run: |
           flutter pub get
           
-          # 1. إنشاء المشروع في مجلد مؤقت فقط إذا لم نكن قد أنشأناه من قبل
+          # 1. إنشاء المجلد إذا لم يكن موجوداً
           if [ ! -d "android" ]; then
-            mkdir -p temp_android
-            cd temp_android
             flutter create . --platforms=android
-            cd ..
-            mv temp_android/android .
-            rm -rf temp_android
           fi
           
-          # 2. حقن الإعدادات الضرورية داخل ملفات المشروع (تعديل مباشر)
-          # إضافة الـ compileSdkVersion لملف التطبيق لإنهاء خطأ app_links
+          # 2. حقن ملف Build.gradle الرئيسي بـ "قوة"
+          # هذا الملف هو الذي تحتاجه مكتبة app_links لتعمل بدون خطأ unknown property
+          cat <<EOF > android/build.gradle
+          buildscript {
+              ext.kotlin_version = '1.9.0'
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.0'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:\$kotlin_version"
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          ext {
+              flutter = [
+                  compileSdkVersion: 34,
+                  minSdkVersion: 21,
+                  targetSdkVersion: 34
+              ]
+          }
+          EOF
+          
+          # 3. التأكد من وجود الخصائص المطلوبة في app/build.gradle
           sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
           
-          # ضبط ملف build.gradle الرئيسي ليتعرف على إعدادات flutter
-          sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
-          
-          # 3. البناء
+          # 4. البناء
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
