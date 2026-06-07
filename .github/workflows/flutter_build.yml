@@ -2,36 +2,209 @@ name: Build Flutter APK
 on: 
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
       
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
-
-      - name: Build & Compile
-        run: |
-          flutter pub get
-          
-          # 1. إنشاء المشروع
-          flutter create . --platforms=android
-          
-          # 2. الحقن المباشر في السطر الأول لملف build.gradle
-          # هذا يضمن وجود الـ ext قبل أي شيء آخر
-          sed -i "1i ext { flutter = [compileSdkVersion: 34, minSdkVersion: 21, targetSdkVersion: 34] }" android/build.gradle
-          
-          # 3. بناء الـ APK
-          flutter build apk --release --no-tree-shake-icons
+          cache: true
       
-      - name: Upload APK
+      - name: Get Flutter dependencies
+        run: flutter pub get
+      
+      - name: Analyze Flutter code
+        run: flutter analyze --no-fatal-infos
+      
+      - name: Setup Android project
+        run: |
+          # حذف مجلد android القديم إن وجد
+          rm -rf android/
+          
+          # إنشاء مشروع Flutter كامل مع Android
+          flutter create . --platforms=android --project-name=arbil_royal
+          
+          # تحديث gradle wrapper
+          cd android && ./gradlew wrapper --gradle-version=8.7 && cd ..
+      
+      - name: Configure Android Gradle
+        run: |
+          cat > android/local.properties << EOF
+          sdk.dir=$ANDROID_HOME
+          flutter.sdk=$FLUTTER_HOME
+          flutter.buildMode=release
+          flutter.versionName=1.0.0
+          flutter.versionCode=1
+          EOF
+          
+          # تحديث gradle.properties
+          cat > android/gradle.properties << EOF
+          org.gradle.jvmargs=-Xmx4096m
+          android.useAndroidX=true
+          android.enableJetifier=true
+          android.useR8=true
+          android.enableDexingArtifactTransform=false
+          EOF
+      
+      - name: Update build.gradle configuration
+        run: |
+          # تحديث android/build.gradle بشكل آمن
+          cat > android/build.gradle << 'GRADLE'
+          buildscript {
+              ext {
+                  flutter = [
+                      compileSdkVersion: 34,
+                      minSdkVersion: 21,
+                      targetSdkVersion: 34,
+                      ndkVersion: "25.2.9519653"
+                  ]
+              }
+              
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.1.4'
+                  classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10'
+              }
+          }
+          
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          
+          rootProject.buildDir = '../build'
+          subprojects {
+              project.buildDir = "${rootProject.buildDir}/${project.name}"
+              project.evaluationDependsOn(':app')
+          }
+          
+          tasks.register("clean", Delete) {
+              delete rootProject.buildDir
+          }
+          GRADLE
+      
+      - name: Update android/app/build.gradle
+        run: |
+          cat > android/app/build.gradle << 'GRADLE'
+          plugins {
+              id "com.android.application"
+              id "kotlin-android"
+          }
+          
+          android {
+              namespace "com.arbil_royal.app"
+              compileSdk flutter.compileSdkVersion
+              ndkVersion flutter.ndkVersion
+          
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_11
+                  targetCompatibility JavaVersion.VERSION_11
+              }
+          
+              kotlinOptions {
+                  jvmTarget = '11'
+              }
+          
+              sourceSets {
+                  main.java.srcDirs += 'src/main/kotlin'
+              }
+          
+              defaultConfig {
+                  applicationId "com.arbil_royal.app"
+                  minSdkVersion flutter.minSdkVersion
+                  targetSdkVersion flutter.targetSdkVersion
+                  versionCode flutter.versionCode ?: 1
+                  versionName flutter.versionName ?: "1.0"
+                  multiDexEnabled true
+              }
+          
+              buildTypes {
+                  release {
+                      minifyEnabled true
+                      shrinkResources false
+                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+                      signingConfig signingConfigs.debug
+                  }
+                  debug {
+                      debuggable true
+                  }
+              }
+          
+              lintOptions {
+                  disable 'MissingDimensionProductionFlavor'
+                  disable 'InvalidPackage'
+              }
+          }
+          
+          flutter {
+              source '../..'
+          }
+          
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.core:core:1.12.0'
+              implementation 'androidx.fragment:fragment:1.6.2'
+              implementation 'androidx.work:work-runtime:2.8.1'
+          }
+          GRADLE
+      
+      - name: Build Flutter APK (Release)
+        run: |
+          flutter build apk \
+            --release \
+            --no-tree-shake-icons \
+            --target-platform android-arm64 \
+            --split-per-abi \
+            -v
+      
+      - name: Verify APK
+        run: |
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            ls -lh build/app/outputs/flutter-apk/app-release.apk
+            echo "✓ APK build successful"
+          else
+            echo "✗ APK not found"
+            exit 1
+          fi
+      
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: arbil-royal-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+      
+      - name: Upload all APKs (split-abi)
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: arbil-royal-apks-all
+          path: build/app/outputs/flutter-apk/
+          retention-days: 30
