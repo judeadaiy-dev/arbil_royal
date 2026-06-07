@@ -19,24 +19,27 @@ jobs:
       - name: Build & Compile
         run: |
           flutter pub get
-          # الإنشاء الإجباري
-          flutter create . --platforms=android
           
-          # 1. الحقن الذكي: هذا الأمر يبحث عن أول سطر في build.gradle ويضع التعريفات المطلوبة للمكتبات
-          sed -i "1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }" android/build.gradle
+          # 1. الإنشاء الذكي: لا تنشئ إلا إذا كان المجلد غير موجود (مرة واحدة فقط)
+          if [ ! -d "android" ]; then
+            flutter create . --platforms=android
+            
+            # 2. الحقن لمرة واحدة (يتم تنفيذه فقط عند إنشاء المجلد لأول مرة)
+            # الحقن في ملف البناء الرئيسي
+            sed -i '1i buildscript { ext { flutter_compileSdkVersion = 34; flutter_minSdkVersion = 21; flutter_targetSdkVersion = 34; } }' android/build.gradle
+            
+            # الحقن في ملف بناء التطبيق
+            sed -i '/defaultConfig {/a \        compileSdkVersion 34' android/app/build.gradle
+            
+            # ضبط Gradle Wrapper
+            sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
+            
+            # ضبط الإعدادات
+            echo "android.useAndroidX=true" > android/gradle.properties
+            echo "android.enableJetifier=true" >> android/gradle.properties
+          fi
           
-          # 2. حقن الـ android block لضمان رؤية الـ compileSdkVersion من قبل app_links
-          # هذا السطر يضيف التعريفات داخل ملف build.gradle الخاص بالتطبيق
-          echo "android { compileSdkVersion 34 }" >> android/app/build.gradle
-          
-          # 3. ضبط Gradle Wrapper
-          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.5-all.zip|g' android/gradle/wrapper/gradle-wrapper.properties
-          
-          # 4. إعدادات الـ properties
-          echo "android.useAndroidX=true" > android/gradle.properties
-          echo "android.enableJetifier=true" >> android/gradle.properties
-          
-          # 5. البناء
+          # 3. البناء النهائي (الآن الإعدادات ثابتة ومحقونة)
           flutter build apk --release --no-tree-shake-icons
       
       - name: Upload APK
