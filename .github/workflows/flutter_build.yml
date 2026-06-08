@@ -26,9 +26,8 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Inject Global Gradle Shield (حل مشكلة الحزم والمكتبات)
+      - name: Inject Global Gradle Shield (حل مشكلة تعارض الحزم)
         run: |
-          # إنشاء ملف إعدادات خفي يجبر أي مكتبة معطوبة على القبول بالإصدارات الصحيحة
           mkdir -p ~/.gradle
           cat << 'EOF' > ~/.gradle/init.gradle
           allprojects {
@@ -80,24 +79,50 @@ jobs:
           EOF
           echo "Global Gradle Shield Activated."
 
-      - name: Force Clean Android Structure
+      - name: Force Clean Android Structure & Fix SDK Path
         run: |
-          # تصفير المجلد لإنشاء بيئة معزولة
+          # 1. تصفير مجلد الأندرويد لضمان بيئة نظيفة تماماً
           rm -rf android
+          
+          # 2. توليد قالب أندرويد حديث ونظيف
           flutter create . --platforms=android --template=app
           
-          # إدخال القيم لملف الخصائص احتياطاً
+          # 3. اصطياد مسار فلاتر وحقنه يدوياً لحل مشكلة (Must provide Flutter source directory)
+          FLUTTER_SDK_DIR=$(dirname $(dirname $(which flutter)))
+          echo "flutter.sdk=$FLUTTER_SDK_DIR" > android/local.properties
+          
+          # 4. حقن ملف gradle.properties بالقيم الأساسية لتسريع البناء
           cat <<EOF > android/gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2048m
           EOF
 
-          # تصريح الإنترنت للموبايل
+          # 5. حقن نسخ الـ SDK بشكل صريح داخل ملف build.gradle
+          APP_GRADLE="android/app/build.gradle"
+          if [ -f "$APP_GRADLE" ]; then
+            sed -i 's/compileSdk = .*/compileSdk = 34/g' $APP_GRADLE
+            sed -i 's/minSdk = .*/minSdk = 21/g' $APP_GRADLE
+            sed -i 's/targetSdk = .*/targetSdk = 34/g' $APP_GRADLE
+            
+            # احتياطاً للصيغ الأخرى
+            sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' $APP_GRADLE
+            sed -i 's/minSdkVersion .*/minSdkVersion 21/g' $APP_GRADLE
+            sed -i 's/targetSdkVersion .*/targetSdkVersion 34/g' $APP_GRADLE
+          fi
+
+          # 6. ضبط نسخة الكوتلن في ملف الإعدادات
+          if [ -f "android/settings.gradle" ]; then
+            sed -i 's/id("org.jetbrains.kotlin.android") version ".*" apply false/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/g' android/settings.gradle
+          fi
+
+          # 7. إضافة تصاريح الإنترنت للـ Manifest ليعمل التطبيق والخرائط بسلاسة
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if [ -f "$MANIFEST" ]; then
             sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' "$MANIFEST"
           fi
+
+          echo "Android environment completely fixed and secured."
 
       - name: Get Dependencies
         run: flutter pub get
