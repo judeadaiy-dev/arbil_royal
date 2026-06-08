@@ -26,53 +26,55 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Force Clean & Configure Android Perfectly
+      - name: Let Flutter Generate Pristine Android Structure
         run: |
-          # 1. تصفير مجلد الأندرويد لإنهاء أي تضارب قديم
+          # 1. مسح مجلد الأندرويد القديم والمكسور نهائياً من المستودع
           rm -rf android
           
-          # 2. إعادة إنشاء قالب الأندرويد ليقرأ اسم المشروع تلقائياً من pubspec.yaml
+          # 2. فلاتر نفسه يقوم بإنشاء بنية الأندرويد الرسمية والنظيفة المتوافقة مع إصداره الحالي
           flutter create . --platforms=android --template=app
-          
-          # 3. تغذية ملف local.properties بمسار SDK الصارم وقيم الـ SDK المطلوبة للحزم
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-          echo "flutter.compileSdkVersion=34" >> android/local.properties
-          echo "flutter.targetSdkVersion=34" >> android/local.properties
-          echo "flutter.minSdkVersion=21" >> android/local.properties
-          
-          # 4. إدخال قيم التوافقية لملف gradle.properties لضمان عدم اعتراض المكتبات
-          cat <<EOF >> android/gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m
-          flutter.compileSdkVersion=34
-          flutter.targetSdkVersion=34
-          flutter.minSdkVersion=21
-          EOF
 
-          # 5. حقن قيم الـ SDK بداخل الـ ext العام لـ build.gradle لحل مشكلة الحزم القديمة دون تضارب مع إضافة فلاتر
-          cat <<EOF >> android/build.gradle
-          allprojects {
-              rootProject.ext {
-                  compileSdkVersion = 34
-                  targetSdkVersion = 34
-                  minSdkVersion = 21
+      - name: Standard Gradle Configuration for Legacy Plugins
+        run: |
+          # حقن إعدادات الأندرويد القياسية (الهيكلية) داخل ملف build.gradle الرئيسي
+          # هذه هي الطريقة الرسمية في Gradle لتمرير المتغيرات للمكتبات الخارجية (مثل app_links) بسلام
+          cat << 'EOF' >> android/build.gradle
+
+          // توفير كائن فلاتر الافتراضي للمكتبات التي تبحث عنه
+          rootProject.ext {
+              flutter = [
+                  compileSdkVersion: 34,
+                  targetSdkVersion: 34,
+                  minSdkVersion: 21
+              ]
+          }
+
+          // إجبار جميع الحزم والمشاريع الفرعية على استخدام نسخ مستقرة من الـ SDK
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.extensions.findByName('android') != null) {
+                      project.android {
+                          compileSdkVersion 34
+                          defaultConfig {
+                              minSdkVersion 21
+                              targetSdkVersion 34
+                          }
+                      }
+                  }
               }
           }
           EOF
 
-          # 6. إضافة تصاريح الإنترنت والشبكة لملف الـ Manifest
+      - name: Add Internet Permission to Manifest
+        run: |
+          # إضافة صلاحية الإنترنت الافتراضية داخل ملف الـ Manifest لضمان عمل خرائط قوقل وسوبابيس عند تشغيل الـ APK
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' "$MANIFEST"
-          fi
-
-          echo "Android environment successfully configured without conflicts."
+          sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' "$MANIFEST"
 
       - name: Get Dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Build APK Cleanly
         run: flutter build apk --release --no-shrink --no-tree-shake-icons
 
       - name: Upload APK Artifact
@@ -81,4 +83,3 @@ jobs:
           name: SeaChat-Mobile-APK
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 7
-
