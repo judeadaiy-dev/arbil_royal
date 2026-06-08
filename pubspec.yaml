@@ -39,10 +39,10 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
-  
-  flutter:
+# تم إصلاح المسافات البادئة هنا بالمليمتر ليفهمها فلاتر فوراً
+flutter:
   uses-material-design: true
-  
+
   assets:
     - assets/images/splash_bg.png
     - assets/images/app_icon.png
