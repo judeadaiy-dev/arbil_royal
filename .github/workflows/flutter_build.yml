@@ -25,43 +25,89 @@ jobs:
           flutter-version: '3.24.3'
           channel: 'stable'
           cache: true
-          
-      - name: Get dependencies
-        run: flutter pub get
-        
-      - name: Generate & Configure Android
+
+      - name: Inject Global Gradle Shield (حل مشكلة الحزم والمكتبات)
         run: |
-          # 1. إنشاء المشروع (نستخدم --force لتجاوز أي تعارض)
-          flutter create . --platforms=android
+          # إنشاء ملف إعدادات خفي يجبر أي مكتبة معطوبة على القبول بالإصدارات الصحيحة
+          mkdir -p ~/.gradle
+          cat << 'EOF' > ~/.gradle/init.gradle
+          allprojects {
+              ext {
+                  flutter = [
+                      compileSdkVersion: 34,
+                      targetSdkVersion: 34,
+                      minSdkVersion: 21,
+                      compileSdk: 34,
+                      targetSdk: 34,
+                      minSdk: 21
+                  ]
+              }
+              rootProject.ext {
+                  compileSdkVersion = 34
+                  targetSdkVersion = 34
+                  minSdkVersion = 21
+                  flutter = [
+                      compileSdkVersion: 34,
+                      targetSdkVersion: 34,
+                      minSdkVersion: 21,
+                      compileSdk: 34,
+                      targetSdk: 34,
+                      minSdk: 21
+                  ]
+              }
+              
+              afterEvaluate { project ->
+                  if (project.extensions.findByName('android') != null) {
+                      def androidObj = project.extensions.getByName('android')
+                      try {
+                          androidObj.compileSdkVersion = 34
+                      } catch (Exception e) {
+                          try { androidObj.compileSdk = 34 } catch (Exception ex) {}
+                      }
+                      try {
+                          androidObj.defaultConfig.minSdkVersion = 21
+                      } catch (Exception e) {
+                          try { androidObj.defaultConfig.minSdk = 21 } catch (Exception ex) {}
+                      }
+                      try {
+                          androidObj.defaultConfig.targetSdkVersion = 34
+                      } catch (Exception e) {
+                          try { androidObj.defaultConfig.targetSdk = 34 } catch (Exception ex) {}
+                      }
+                  }
+              }
+          }
+          EOF
+          echo "Global Gradle Shield Activated."
+
+      - name: Force Clean Android Structure
+        run: |
+          # تصفير المجلد لإنشاء بيئة معزولة
+          rm -rf android
+          flutter create . --platforms=android --template=app
           
-          # 2. حقن الإعدادات في gradle.properties (أفضل طريقة للتحكم في SDK بدون أخطاء)
-          cat <<EOF >> android/gradle.properties
+          # إدخال القيم لملف الخصائص احتياطاً
+          cat <<EOF > android/gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
-          flutter.compileSdkVersion=34
-          flutter.minSdkVersion=21
-          flutter.targetSdkVersion=34
+          org.gradle.jvmargs=-Xmx2048m
           EOF
-          
-          # 3. تحديث نسخة Kotlin في settings.gradle (لحل مشكلة التوافق)
-          # نبحث عن السطر الذي يحتوي على نسخة Kotlin ونستبدله بـ 1.9.22
-          sed -i 's/id("org.jetbrains.kotlin.android") version ".*" apply false/id("org.jetbrains.kotlin.android") version "1.9.22" apply false/g' android/settings.gradle
-          
-          # 4. حقن تصريح الانترنت
+
+          # تصريح الإنترنت للموبايل
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q "android.permission.INTERNET" "$MANIFEST"; then
+          if [ -f "$MANIFEST" ]; then
             sed -i '/<application/i\    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' "$MANIFEST"
           fi
-          
-          echo "Configuration applied successfully."
-        
+
+      - name: Get Dependencies
+        run: flutter pub get
+
       - name: Build APK
-        # استخدام --no-shrink لضمان عدم فشل البناء بسبب المكتبات المتداخلة
         run: flutter build apk --release --no-shrink --no-tree-shake-icons
-        
-      - name: Upload APK
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SeaChat-APK
+          name: SeaChat-Mobile-APK
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
+          retention-days: 7
